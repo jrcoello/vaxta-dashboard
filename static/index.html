@@ -70,9 +70,10 @@ select { min-width: 190px; }
 .barschart .lbl { font-size: 10px; color: var(--text-muted); margin-top: 6px; }
 .barschart .val { font-size: 9px; color: var(--text-secondary); position:absolute; top:-14px; left:0; right:0; text-align:center; font-variant-numeric:tabular-nums; }
 
-.hourschart { display:flex; align-items:flex-end; gap:3px; height:120px; }
-.hourschart .col { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; }
-.hourschart .bar { width:100%; background: var(--series-1); opacity: 0.85; border-radius:3px 3px 0 0; min-height:2px; }
+.hourschart { display:flex; align-items:flex-end; gap:3px; height:120px; padding-top: 16px; }
+.hourschart .col { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; position: relative; }
+.hourschart .bar { width:100%; background: var(--series-1); opacity: 0.85; border-radius:3px 3px 0 0; min-height:2px; position: relative; }
+.hourschart .val { font-size: 8px; color: var(--text-secondary); position: absolute; top: -14px; left: 0; right: 0; text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .hourschart .lbl { font-size:8.5px; color:var(--text-muted); margin-top:5px; writing-mode: vertical-rl; transform: rotate(180deg); height: 24px; }
 svg { width: 100%; height: auto; overflow: visible; }
 .axis-lbl { font-size: 9.5px; fill: var(--text-muted); }
@@ -335,7 +336,7 @@ function dibujarHorasOcupacion(data) {
     const pct = (h.ocupacion / maxVal) * 100;
     const col = document.createElement('div');
     col.className = 'col';
-    col.innerHTML = `<div class="bar" style="height:${pct}%;" title="${h.hora}: ${fmtPct(h.ocupacion)}"></div><div class="lbl">${h.hora}</div>`;
+    col.innerHTML = `<div class="bar" style="height:${pct}%;" title="${h.hora}: ${fmtPct(h.ocupacion)}"><div class="val">${Math.round(h.ocupacion)}%</div></div><div class="lbl">${h.hora}</div>`;
     cont.appendChild(col);
   });
 }
