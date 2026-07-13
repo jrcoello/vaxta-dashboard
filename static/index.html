@@ -242,8 +242,8 @@ function renderResultado(data) {
     </div>
     <div class="card">
       <h2>Precio promedio por hora del día</h2>
-      <p class="sub">Club seleccionado en rojo, vecinos como contexto</p>
-      ${hayHoras ? '<svg id="svgHoras" viewBox="0 0 630 340"></svg>' : '<div class="empty">Sin datos de precio por hora esta semana.</div>'}
+      <p class="sub">Club seleccionado en rojo, cada vecino con su propio color</p>
+      ${hayHoras ? '<svg id="svgHoras" viewBox="0 0 630 340"></svg><div class="legend" id="leyendaHoras"></div>' : '<div class="empty">Sin datos de precio por hora esta semana.</div>'}
     </div>
     <div class="card">
       <h2>Ingreso esta semana</h2>
@@ -401,6 +401,13 @@ function dibujarCuadrante(data) {
 }
 
 // ============ 2) PRECIO POR HORA ============
+function colorLineaPorIndice(i) {
+  // ángulo dorado: buena separación visual entre N líneas sin tener que
+  // elegir a mano, evita el rojo (reservado para el club seleccionado)
+  const hue = (40 + i * 137.508) % 360;
+  return `hsl(${hue.toFixed(0)}, 62%, 45%)`;
+}
+
 function dibujarHoras(data) {
   const porClub = data.precio_hora;
   const clubId = data.club.id;
@@ -422,14 +429,23 @@ function dibujarHoras(data) {
     if (i % 2 === 0) svg += `<text x="${sx(i,horas.length)}" y="${PY1+16}" text-anchor="middle" class="axis-lbl">${h}</text>`;
   });
 
-  const entries = Object.entries(porClub).sort((a,b) => (a[0]===clubId?1:0) - (b[0]===clubId?1:0));
+  // orden estable (por id) para que cada club siempre tenga el mismo color
+  // entre una carga y otra, y el club seleccionado se dibuje al final (encima)
+  const otros = Object.keys(porClub).filter(id => id !== clubId).sort();
+  const coloresPorId = {};
+  otros.forEach((id, i) => { coloresPorId[id] = colorLineaPorIndice(i); });
+
+  const orden = [...otros, ...(porClub[clubId] ? [clubId] : [])];
   let focusEnd = null;
-  for (const [id, pts] of entries) {
+  const leyenda = [];
+  for (const id of orden) {
+    const pts = porClub[id];
     const isSel = id === clubId;
     const ordered = [...pts].sort((a,b) => horas.indexOf(a.hora) - horas.indexOf(b.hora));
     const path = ordered.map((p,i) => `${i===0?'M':'L'}${sx(horas.indexOf(p.hora),horas.length).toFixed(1)},${sy(p.precio).toFixed(1)}`).join(' ');
-    const stroke = isSel ? 'var(--series-focus)' : 'var(--gridline-strong)';
-    svg += `<path d="${path}" fill="none" stroke="${stroke}" stroke-width="${isSel?3:1.3}" opacity="${isSel?1:0.7}"><title>${data.nombres[id]}</title></path>`;
+    const stroke = isSel ? 'var(--series-focus)' : coloresPorId[id];
+    svg += `<path d="${path}" fill="none" stroke="${stroke}" stroke-width="${isSel?3:1.6}" opacity="${isSel?1:0.85}"><title>${data.nombres[id]}</title></path>`;
+    leyenda.push({ id, nombre: data.nombres[id], color: stroke, isSel });
     if (isSel && ordered.length) {
       const last = ordered[ordered.length-1];
       focusEnd = [sx(horas.indexOf(last.hora),horas.length), sy(last.precio)];
@@ -437,9 +453,16 @@ function dibujarHoras(data) {
   }
   if (focusEnd) {
     svg += `<circle cx="${focusEnd[0].toFixed(1)}" cy="${focusEnd[1].toFixed(1)}" r="3.5" fill="var(--series-focus)"/>`;
-    svg += `<text x="${(focusEnd[0]+8).toFixed(1)}" y="${(focusEnd[1]+4).toFixed(1)}" class="line-label focus">${data.club.nombre}</text>`;
   }
   document.getElementById('svgHoras').innerHTML = svg;
+
+  const leg = document.getElementById('leyendaHoras');
+  if (leg) {
+    leyenda.sort((a,b) => (b.isSel?1:0) - (a.isSel?1:0));
+    leg.innerHTML = leyenda.map(l =>
+      `<div class="item${l.isSel?' focus':''}"><span class="dot" style="background:${l.color}"></span>${l.nombre}</div>`
+    ).join('');
+  }
 }
 
 // ============ 3) INGRESO ESTA SEMANA + POR CANCHA ============
