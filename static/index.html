@@ -106,7 +106,6 @@ svg { width: 100%; height: auto; overflow: visible; }
 .chart-tooltip .tt-club { font-weight: 700; margin-bottom: 2px; display:flex; align-items:center; gap:6px; }
 .chart-tooltip .tt-dot { width: 9px; height: 9px; border-radius: 2px; flex-shrink:0; }
 .chart-tooltip .tt-val { font-variant-numeric: tabular-nums; color: var(--text-secondary); }
-.chart-tooltip .tt-est { font-size: 10.5px; color: var(--warn-ink); margin-top: 2px; }
 .loading { font-size: 13px; color: var(--text-muted); padding: 30px 0; text-align: center; }
 </style>
 </head>
@@ -281,7 +280,7 @@ function renderResultado(data) {
     </div>
     <div class="card">
       <h2>Tendencia de ingreso semanal</h2>
-      <p class="sub">Top 7 por ingreso acumulado + club seleccionado + resto agrupado como "Otros"</p>
+      <p class="sub">Top 10 por ingreso acumulado + club seleccionado + resto agrupado como "Otros"</p>
       ${hayTendencia ? '<svg id="svgTendencia" viewBox="0 0 700 320"></svg><div class="legend" id="leyendaTendencia"></div>' : '<div class="empty">Sin histórico suficiente.</div>'}
     </div>
   `;
@@ -432,6 +431,8 @@ function colorLineaPorIndice(i) {
   return `hsl(${hue.toFixed(0)}, 62%, 45%)`;
 }
 
+const GRIS_APAGADO = 'var(--gridline-strong)';
+
 function dibujarHoras(data) {
   const porClub = data.precio_hora;
   const clubId = data.club.id;
@@ -439,7 +440,8 @@ function dibujarHoras(data) {
   const todosPrecios = Object.values(porClub).flat().map(p => p.precio);
   const yMin = Math.min(...todosPrecios) - 40, yMax = Math.max(...todosPrecios) + 60;
   const PX0 = 60, PX1 = 600, PY0 = 20, PY1 = 300;
-  const sx = (i, n) => PX0 + i/(n-1) * (PX1-PX0);
+  const n = horas.length;
+  const sx = i => PX0 + i/(n-1) * (PX1-PX0);
   const sy = v => PY1 - (v - yMin)/(yMax-yMin) * (PY1-PY0);
 
   let svg = `<line x1="${PX0}" y1="${PY1}" x2="${PX1}" y2="${PY1}" stroke="var(--baseline)"/>`;
@@ -450,7 +452,7 @@ function dibujarHoras(data) {
     svg += `<text x="${PX0-8}" y="${yy+4}" text-anchor="end" class="axis-lbl">$${yv}</text>`;
   }
   horas.forEach((h, i) => {
-    if (i % 2 === 0) svg += `<text x="${sx(i,horas.length)}" y="${PY1+16}" text-anchor="middle" class="axis-lbl">${h}</text>`;
+    if (i % 2 === 0) svg += `<text x="${sx(i)}" y="${PY1+16}" text-anchor="middle" class="axis-lbl">${h}</text>`;
   });
 
   // orden estable (por id) para que cada club siempre tenga el mismo color
@@ -458,27 +460,95 @@ function dibujarHoras(data) {
   const otros = Object.keys(porClub).filter(id => id !== clubId).sort();
   const coloresPorId = {};
   otros.forEach((id, i) => { coloresPorId[id] = colorLineaPorIndice(i); });
+  if (porClub[clubId]) coloresPorId[clubId] = 'var(--series-focus)';
 
   const orden = [...otros, ...(porClub[clubId] ? [clubId] : [])];
+  const puntosPorId = {}; // id -> [{x, y, hora, precio}, ...] ordenado por hora, para el hover
   let focusEnd = null;
   const leyenda = [];
   for (const id of orden) {
     const pts = porClub[id];
     const isSel = id === clubId;
     const ordered = [...pts].sort((a,b) => horas.indexOf(a.hora) - horas.indexOf(b.hora));
-    const path = ordered.map((p,i) => `${i===0?'M':'L'}${sx(horas.indexOf(p.hora),horas.length).toFixed(1)},${sy(p.precio).toFixed(1)}`).join(' ');
-    const stroke = isSel ? 'var(--series-focus)' : coloresPorId[id];
-    svg += `<path d="${path}" fill="none" stroke="${stroke}" stroke-width="${isSel?3:1.6}" opacity="${isSel?1:0.85}"><title>${data.nombres[id]}</title></path>`;
+    puntosPorId[id] = ordered.map(p => ({
+      x: sx(horas.indexOf(p.hora)), y: sy(p.precio), hora: p.hora, precio: p.precio
+    }));
+    const path = puntosPorId[id].map((p,i) => `${i===0?'M':'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+    const stroke = coloresPorId[id];
+    svg += `<path id="linea-${id}" data-id="${id}" d="${path}" fill="none" stroke="${stroke}" stroke-width="${isSel?3:1.6}" opacity="${isSel?1:0.85}"/>`;
     leyenda.push({ id, nombre: data.nombres[id], color: stroke, isSel });
     if (isSel && ordered.length) {
       const last = ordered[ordered.length-1];
-      focusEnd = [sx(horas.indexOf(last.hora),horas.length), sy(last.precio)];
+      focusEnd = [sx(horas.indexOf(last.hora)), sy(last.precio)];
     }
   }
   if (focusEnd) {
     svg += `<circle cx="${focusEnd[0].toFixed(1)}" cy="${focusEnd[1].toFixed(1)}" r="3.5" fill="var(--series-focus)"/>`;
   }
-  document.getElementById('svgHoras').innerHTML = svg;
+
+  // columnas invisibles por hora, para detectar sobre qué hora está el mouse
+  for (let i = 0; i < n; i++) {
+    const xMid = sx(i);
+    const xIni = i === 0 ? PX0 : (sx(i-1) + xMid) / 2;
+    const xFin = i === n-1 ? PX1 : (xMid + sx(i+1)) / 2;
+    svg += `<rect class="hover-col" x="${xIni.toFixed(1)}" y="${PY0}" width="${(xFin-xIni).toFixed(1)}" height="${PY1-PY0}" data-hora="${i}"/>`;
+  }
+
+  const svgEl = document.getElementById('svgHoras');
+  svgEl.innerHTML = svg;
+
+  const tooltip = document.getElementById('chartTooltip');
+  function svgCoords(evt) {
+    const pt = svgEl.createSVGPoint();
+    pt.x = evt.clientX; pt.y = evt.clientY;
+    return pt.matrixTransform(svgEl.getScreenCTM().inverse());
+  }
+  function resaltar(idResaltado) {
+    orden.forEach(id => {
+      const el = document.getElementById(`linea-${id}`);
+      if (!el) return;
+      if (idResaltado === null) {
+        el.setAttribute('stroke', coloresPorId[id]);
+        el.setAttribute('stroke-width', id === clubId ? '3' : '1.6');
+        el.setAttribute('opacity', id === clubId ? '1' : '0.85');
+      } else if (id === idResaltado) {
+        el.setAttribute('stroke', coloresPorId[id]);
+        el.setAttribute('stroke-width', '3');
+        el.setAttribute('opacity', '1');
+      } else {
+        el.setAttribute('stroke', GRIS_APAGADO);
+        el.setAttribute('stroke-width', '1.3');
+        el.setAttribute('opacity', '0.5');
+      }
+    });
+  }
+  svgEl.querySelectorAll('.hover-col').forEach(rect => {
+    rect.addEventListener('mousemove', (evt) => {
+      const horaIdx = parseInt(rect.dataset.hora);
+      const { y } = svgCoords(evt);
+      let mejorId = null, mejorDist = Infinity;
+      for (const id of orden) {
+        const p = puntosPorId[id][horaIdx];
+        if (!p) continue;
+        const dist = Math.abs(p.y - y);
+        if (dist < mejorDist) { mejorDist = dist; mejorId = id; }
+      }
+      if (mejorId === null) { tooltip.style.display = 'none'; return; }
+      resaltar(mejorId);
+      const p = puntosPorId[mejorId][horaIdx];
+      tooltip.innerHTML = `
+        <div class="tt-club"><span class="tt-dot" style="background:${coloresPorId[mejorId]}"></span>${data.nombres[mejorId]}</div>
+        <div class="tt-val">${p.hora}: $${Math.round(p.precio)}/hr</div>
+      `;
+      tooltip.style.display = 'block';
+      tooltip.style.left = (evt.clientX + 14) + 'px';
+      tooltip.style.top = (evt.clientY + 14) + 'px';
+    });
+  });
+  svgEl.addEventListener('mouseleave', () => {
+    resaltar(null);
+    tooltip.style.display = 'none';
+  });
 
   const leg = document.getElementById('leyendaHoras');
   if (leg) {
@@ -596,7 +666,7 @@ function dibujarTendencia(data) {
     const top = cumNext.map((v,i) => `${sx(i).toFixed(1)},${sy(v).toFixed(1)}`).join(' ');
     const bottom = [...cumPrev.map((v,i) => `${sx(i).toFixed(1)},${sy(v).toFixed(1)}`)].reverse().join(' ');
     const isSel = ser.id === clubId;
-    svg += `<polygon points="${top} ${bottom}" fill="${colores[sIdx]}" fill-opacity="0.85" stroke="${isSel?'var(--text-primary)':'var(--surface-1)'}" stroke-width="${isSel?2:1}"/>`;
+    svg += `<polygon id="banda-${sIdx}" points="${top} ${bottom}" fill="${colores[sIdx]}" fill-opacity="0.85" stroke="${isSel?'var(--text-primary)':'var(--surface-1)'}" stroke-width="${isSel?2:1}"/>`;
     for (let i = 0; i < n; i++) acumulados[i][sIdx] = [cumPrev[i], cumNext[i]];
     cumPrev = cumNext;
   });
@@ -630,13 +700,30 @@ function dibujarTendencia(data) {
     pt.x = evt.clientX; pt.y = evt.clientY;
     return pt.matrixTransform(svgEl.getScreenCTM().inverse());
   }
+  function resaltarBanda(sIdxResaltado) {
+    series.forEach((ser, i) => {
+      const el = document.getElementById(`banda-${i}`);
+      if (!el) return;
+      if (sIdxResaltado === null) {
+        el.setAttribute('fill', colores[i]);
+        el.setAttribute('fill-opacity', '0.85');
+      } else if (i === sIdxResaltado) {
+        el.setAttribute('fill', colores[i]);
+        el.setAttribute('fill-opacity', '1');
+      } else {
+        el.setAttribute('fill', GRIS_APAGADO);
+        el.setAttribute('fill-opacity', '0.5');
+      }
+    });
+  }
   svgEl.querySelectorAll('.hover-col').forEach(rect => {
     rect.addEventListener('mousemove', (evt) => {
       const semanaIdx = parseInt(rect.dataset.semana);
       const { y } = svgCoords(evt);
       const valorY = (PY1 - y) / (PY1 - PY0) * yMax;
       let sIdx = acumulados[semanaIdx].findIndex(([ini, fin]) => valorY >= ini && valorY <= fin);
-      if (sIdx === -1) { tooltip.style.display = 'none'; return; }
+      if (sIdx === -1) { resaltarBanda(null); tooltip.style.display = 'none'; return; }
+      resaltarBanda(sIdx);
       const ser = series[sIdx];
       const val = matriz[semanaIdx][sIdx];
       const semanaLbl = semanas[semanaIdx];
@@ -650,7 +737,10 @@ function dibujarTendencia(data) {
       tooltip.style.left = (evt.clientX + 14) + 'px';
       tooltip.style.top = (evt.clientY + 14) + 'px';
     });
-    rect.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; });
+  });
+  svgEl.addEventListener('mouseleave', () => {
+    resaltarBanda(null);
+    tooltip.style.display = 'none';
   });
 
   const leg = document.getElementById('leyendaTendencia');
