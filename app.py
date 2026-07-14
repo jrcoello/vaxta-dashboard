@@ -26,8 +26,6 @@ from dotenv import load_dotenv
 HERE = os.path.dirname(os.path.abspath(__file__))
 load_dotenv(os.path.join(HERE, ".env"))
 
-from reportes_semanal import generar_html_semanal  # noqa: E402  (después de load_dotenv)
-
 app = Flask(__name__, static_folder="static", static_url_path="")
 
 
@@ -287,26 +285,6 @@ def api_comparacion(club_id):
         )
     finally:
         conn.close()
-
-
-@app.route("/reportes")
-def reportes_selector():
-    """Página simple para elegir un club y abrir su reporte semanal
-    (reusa el mismo buscador de clubes que ya existe en /api/clubes)."""
-    return send_from_directory(app.static_folder, "reportes.html")
-
-
-@app.route("/reporte/semanal/<club_id>")
-def reporte_semanal(club_id):
-    """Genera y sirve el reporte semanal de cualquier club en vivo, para
-    poder mandar el link directo (?semana=YYYY-MM-DD opcional, default =
-    la semana más reciente con datos)."""
-    semana = request.args.get("semana")
-    try:
-        html, club, semana_usada = generar_html_semanal(club_id, semana)
-    except ValueError as e:
-        return f"<p style='font-family:sans-serif;padding:40px'>{e}</p>", 404
-    return Response(html, mimetype="text/html")
 
 
 if __name__ == "__main__":
