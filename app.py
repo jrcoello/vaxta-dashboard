@@ -190,11 +190,15 @@ def api_comparacion(club_id):
         )
         ingreso_semana = {r["id"]: r for r in cur.fetchall()}
 
-        # ---- 4) Tendencia: todo el histórico del grupo ----
+        # ---- 4) Tendencia: todo el histórico del grupo, con relleno de huecos
+        # conocidos (ver rellenar_huecos.sql) para que un hueco de datos (ej.
+        # 6-7 mayo 2026 perdidos) no se vea como una caída real de negocio.
+        # Esto es solo para esta gráfica de contexto — "esta semana" y demás
+        # números puntuales siguen usando ingreso_semanal real, sin rellenar.
         cur.execute(
             """
-            SELECT tenant_id AS id, semana_inicio, ingreso_estimado_mxn
-            FROM ingreso_semanal
+            SELECT tenant_id AS id, semana_inicio, ingreso_estimado_mxn, dias_estimados
+            FROM ingreso_semanal_completo
             WHERE tenant_id = ANY(%s)
             ORDER BY semana_inicio
             """,

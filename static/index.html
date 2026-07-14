@@ -93,6 +93,20 @@ svg { width: 100%; height: auto; overflow: visible; }
 .legend .item.focus { font-weight: 700; color: var(--series-focus); }
 .note { font-size: 11px; color: var(--text-muted); margin: 8px 0 0; }
 .empty { font-size: 13px; color: var(--text-muted); padding: 30px 0; text-align: center; }
+
+.end-lbl { font-size: 9.5px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.end-lbl.focus { fill: var(--series-focus); font-weight: 700; }
+.hover-col { fill: transparent; }
+.chart-tooltip {
+  position: fixed; display: none; pointer-events: none; z-index: 100;
+  background: var(--surface-1); border: 1px solid var(--border); border-radius: 8px;
+  padding: 7px 10px; font-size: 12px; box-shadow: 0 6px 18px rgba(0,0,0,0.18);
+  max-width: 220px;
+}
+.chart-tooltip .tt-club { font-weight: 700; margin-bottom: 2px; display:flex; align-items:center; gap:6px; }
+.chart-tooltip .tt-dot { width: 9px; height: 9px; border-radius: 2px; flex-shrink:0; }
+.chart-tooltip .tt-val { font-variant-numeric: tabular-nums; color: var(--text-secondary); }
+.chart-tooltip .tt-est { font-size: 10.5px; color: var(--warn-ink); margin-top: 2px; }
 .loading { font-size: 13px; color: var(--text-muted); padding: 30px 0; text-align: center; }
 </style>
 </head>
@@ -115,6 +129,8 @@ svg { width: 100%; height: auto; overflow: visible; }
     <div class="empty">Busca y selecciona un club para ver su comparación competitiva.</div>
   </div>
 </div>
+
+<div class="chart-tooltip" id="chartTooltip"></div>
 
 <script>
 let CLUBES = [];
@@ -258,7 +274,7 @@ function renderResultado(data) {
     <div class="card">
       <h2>Tendencia de ingreso semanal</h2>
       <p class="sub">Top 7 por ingreso acumulado + club seleccionado + resto agrupado como "Otros"</p>
-      ${hayTendencia ? '<svg id="svgTendencia" viewBox="0 0 630 320"></svg><div class="legend" id="leyendaTendencia"></div>' : '<div class="empty">Sin histórico suficiente.</div>'}
+      ${hayTendencia ? '<svg id="svgTendencia" viewBox="0 0 700 320"></svg><div class="legend" id="leyendaTendencia"></div>' : '<div class="empty">Sin histórico suficiente.</div>'}
     </div>
   `;
 
@@ -508,12 +524,14 @@ const ROJO = '#e34948';
 function dibujarTendencia(data) {
   const clubId = data.club.id;
   const porClub = {};
+  const estimadoPorSemana = {}; // semana -> true si algún club del grupo tuvo días rellenados esa semana
   const semanasSet = new Set();
   for (const r of data.tendencia_rows) {
     if (r.ingreso_estimado_mxn == null) continue;
     porClub[r.id] = porClub[r.id] || {};
     porClub[r.id][r.semana_inicio] = Number(r.ingreso_estimado_mxn);
     semanasSet.add(r.semana_inicio);
+    if (r.dias_estimados > 0) estimadoPorSemana[r.semana_inicio] = true;
   }
   const semanas = [...semanasSet].sort();
   const totales = Object.fromEntries(Object.entries(porClub).map(([id, v]) => [id, Object.values(v).reduce((a,b)=>a+b,0)]));
@@ -537,7 +555,7 @@ function dibujarTendencia(data) {
     return porClub[ser.id]?.[s] || 0;
   }));
 
-  const PX0 = 50, PX1 = 610, PY0 = 20, PY1 = 300;
+  const PX0 = 50, PX1 = 560, PY0 = 20, PY1 = 300;
   const n = semanas.length;
   const totalesPorSemana = matriz.map(fila => fila.reduce((a,b)=>a+b,0));
   const yMax = Math.max(...totalesPorSemana) * 1.08;
@@ -556,16 +574,73 @@ function dibujarTendencia(data) {
     svg += `<text x="${sx(i).toFixed(1)}" y="${PY1+16}" text-anchor="middle" class="axis-lbl">${semanas[i].slice(5)}</text>`;
   }
 
+  // acumulados [semana][serie] = [inicio, fin] en unidades de datos — se
+  // guardan para las etiquetas del lado derecho y para el hover
+  const acumulados = semanas.map(() => []);
   let cumPrev = new Array(n).fill(0);
   series.forEach((ser, sIdx) => {
     const cumNext = cumPrev.map((v,i) => v + matriz[i][sIdx]);
     const top = cumNext.map((v,i) => `${sx(i).toFixed(1)},${sy(v).toFixed(1)}`).join(' ');
     const bottom = [...cumPrev.map((v,i) => `${sx(i).toFixed(1)},${sy(v).toFixed(1)}`)].reverse().join(' ');
     const isSel = ser.id === clubId;
-    svg += `<polygon points="${top} ${bottom}" fill="${colores[sIdx]}" fill-opacity="0.85" stroke="${isSel?'var(--text-primary)':'var(--surface-1)'}" stroke-width="${isSel?2:1}"><title>${ser.nombre}</title></polygon>`;
+    svg += `<polygon points="${top} ${bottom}" fill="${colores[sIdx]}" fill-opacity="0.85" stroke="${isSel?'var(--text-primary)':'var(--surface-1)'}" stroke-width="${isSel?2:1}"/>`;
+    for (let i = 0; i < n; i++) acumulados[i][sIdx] = [cumPrev[i], cumNext[i]];
     cumPrev = cumNext;
   });
-  document.getElementById('svgTendencia').innerHTML = svg;
+
+  // etiquetas de ingreso a la derecha — nivel que alcanza cada club en la
+  // última semana, a la altura media de su franja
+  const ultima = n - 1;
+  series.forEach((ser, sIdx) => {
+    const [ini, fin] = acumulados[ultima][sIdx];
+    if (fin - ini <= 0) return; // sin datos esa semana, no hay dónde poner la etiqueta
+    const yMid = sy((ini + fin) / 2);
+    const isSel = ser.id === clubId;
+    const fillAttr = isSel ? '' : ` fill="${colores[sIdx]}"`;
+    svg += `<text x="${PX1+8}" y="${(yMid+3).toFixed(1)}" class="end-lbl${isSel?' focus':''}"${fillAttr}>${fmtMXN(matriz[ultima][sIdx])}</text>`;
+  });
+
+  // columnas invisibles para detectar hover por semana + franja
+  for (let i = 0; i < n; i++) {
+    const xMid = sx(i);
+    const xIni = i === 0 ? PX0 : (sx(i-1) + xMid) / 2;
+    const xFin = i === n-1 ? PX1 : (xMid + sx(i+1)) / 2;
+    svg += `<rect class="hover-col" x="${xIni.toFixed(1)}" y="${PY0}" width="${(xFin-xIni).toFixed(1)}" height="${PY1-PY0}" data-semana="${i}"/>`;
+  }
+
+  const svgEl = document.getElementById('svgTendencia');
+  svgEl.innerHTML = svg;
+
+  const tooltip = document.getElementById('chartTooltip');
+  function svgCoords(evt) {
+    const pt = svgEl.createSVGPoint();
+    pt.x = evt.clientX; pt.y = evt.clientY;
+    return pt.matrixTransform(svgEl.getScreenCTM().inverse());
+  }
+  svgEl.querySelectorAll('.hover-col').forEach(rect => {
+    rect.addEventListener('mousemove', (evt) => {
+      const semanaIdx = parseInt(rect.dataset.semana);
+      const { y } = svgCoords(evt);
+      const valorY = (PY1 - y) / (PY1 - PY0) * yMax;
+      let sIdx = acumulados[semanaIdx].findIndex(([ini, fin]) => valorY >= ini && valorY <= fin);
+      if (sIdx === -1) { tooltip.style.display = 'none'; return; }
+      const ser = series[sIdx];
+      const val = matriz[semanaIdx][sIdx];
+      const semanaLbl = semanas[semanaIdx];
+      const f = new Date(semanaLbl + 'T00:00:00');
+      const fechaTxt = f.toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' });
+      const esEst = !!estimadoPorSemana[semanaLbl];
+      tooltip.innerHTML = `
+        <div class="tt-club"><span class="tt-dot" style="background:${colores[sIdx]}"></span>${ser.nombre}</div>
+        <div class="tt-val">Semana del ${fechaTxt}: ${fmtMXN(val)}</div>
+        ${esEst ? '<div class="tt-est">⚠ semana con días rellenados (hueco de datos)</div>' : ''}
+      `;
+      tooltip.style.display = 'block';
+      tooltip.style.left = (evt.clientX + 14) + 'px';
+      tooltip.style.top = (evt.clientY + 14) + 'px';
+    });
+    rect.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; });
+  });
 
   const leg = document.getElementById('leyendaTendencia');
   leg.innerHTML = series.map((s, i) =>
