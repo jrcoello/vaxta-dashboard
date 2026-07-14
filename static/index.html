@@ -218,6 +218,14 @@ function renderResultado(data) {
   const hayHorasOcup = data.horas_ocupacion && data.horas_ocupacion.length > 0;
 
   cont.innerHTML = `
+    ${data.club.cerrado_temporalmente ? `
+    <div class="card" style="border-color: var(--warn-ink);">
+      <p class="sub" style="margin:0; color: var(--warn-ink); font-weight:600;">
+        ⚠ ${data.club.nombre} aparece cerrado temporalmente desde el ${data.club.cerrado_desde}
+        (ocupación 100% sin variación por varios días — detectado automáticamente, no confirmado con el club).
+        Los datos desde esa fecha no se incluyen en los reportes; su historial de antes sigue intacto.
+      </p>
+    </div>` : ''}
     ${hayResumen ? `
     <div class="stats">
       <div class="stat-tile">
