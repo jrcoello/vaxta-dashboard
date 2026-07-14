@@ -526,25 +526,30 @@ function dibujarIngresoSemana(data) {
 }
 
 // ============ 4) TENDENCIA SEMANAL ============
-const PALETTE_NO_ROJO = ['#2a78d6','#1baf7a','#eda100','#008300','#4a3aa7','#e87ba4','#eb6834'];
 const ROJO = '#e34948';
+
+function colorTendenciaPorIndice(i) {
+  // mismo criterio de ángulo dorado que la gráfica de precio por hora —
+  // escala a cualquier cantidad de series sin repetir color, reservando
+  // el rojo para el club seleccionado
+  const hue = (40 + i * 137.508) % 360;
+  return `hsl(${hue.toFixed(0)}, 62%, 45%)`;
+}
 
 function dibujarTendencia(data) {
   const clubId = data.club.id;
   const porClub = {};
-  const estimadoPorSemana = {}; // semana -> true si algún club del grupo tuvo días rellenados esa semana
   const semanasSet = new Set();
   for (const r of data.tendencia_rows) {
     if (r.ingreso_estimado_mxn == null) continue;
     porClub[r.id] = porClub[r.id] || {};
     porClub[r.id][r.semana_inicio] = Number(r.ingreso_estimado_mxn);
     semanasSet.add(r.semana_inicio);
-    if (r.dias_estimados > 0) estimadoPorSemana[r.semana_inicio] = true;
   }
   const semanas = [...semanasSet].sort();
   const totales = Object.fromEntries(Object.entries(porClub).map(([id, v]) => [id, Object.values(v).reduce((a,b)=>a+b,0)]));
-  let topIds = Object.keys(totales).sort((a,b) => totales[b]-totales[a]).slice(0,7);
-  if (!topIds.includes(clubId)) topIds = [...topIds.slice(0,6), clubId];
+  let topIds = Object.keys(totales).sort((a,b) => totales[b]-totales[a]).slice(0,10);
+  if (!topIds.includes(clubId)) topIds = [...topIds.slice(0,9), clubId];
   const restoIds = Object.keys(porClub).filter(id => !topIds.includes(id));
 
   let series = topIds.map(id => ({ id, nombre: data.nombres[id] }));
@@ -556,7 +561,7 @@ function dibujarTendencia(data) {
   });
 
   let colorIter = 0;
-  const colores = series.map(s => s.id === clubId ? ROJO : PALETTE_NO_ROJO[colorIter++ % 7]);
+  const colores = series.map(s => s.id === clubId ? ROJO : colorTendenciaPorIndice(colorIter++));
 
   const matriz = semanas.map(s => series.map(ser => {
     if (ser.id === 'OTROS') return restoIds.reduce((sum, id) => sum + (porClub[id]?.[s] || 0), 0);
@@ -637,11 +642,9 @@ function dibujarTendencia(data) {
       const semanaLbl = semanas[semanaIdx];
       const f = new Date(semanaLbl + 'T00:00:00');
       const fechaTxt = f.toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' });
-      const esEst = !!estimadoPorSemana[semanaLbl];
       tooltip.innerHTML = `
         <div class="tt-club"><span class="tt-dot" style="background:${colores[sIdx]}"></span>${ser.nombre}</div>
         <div class="tt-val">Semana del ${fechaTxt}: ${fmtMXN(val)}</div>
-        ${esEst ? '<div class="tt-est">⚠ semana con días rellenados (hueco de datos)</div>' : ''}
       `;
       tooltip.style.display = 'block';
       tooltip.style.left = (evt.clientX + 14) + 'px';
