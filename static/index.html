@@ -61,10 +61,10 @@ select { min-width: 190px; }
 .stat-tile .k { font-size: 11.5px; color: var(--text-muted); margin-bottom: 6px; }
 .stat-tile .v { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .stat-tile .delta { font-size: 11px; margin-top: 4px; font-variant-numeric: tabular-nums; }
-.delta.up { color: var(--good-ink); } .delta.down { color: var(--crit-ink); } .delta.flat { color: var(--text-muted); }
+.delta .up { color: var(--good-ink); font-weight: 600; } .delta .down { color: var(--crit-ink); font-weight: 600; } .delta .flat { color: var(--text-muted); }
 
 .grid2 { display:grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-.barschart { display:flex; align-items:flex-end; gap:5px; height:130px; position:relative; }
+.barschart { display:flex; align-items:flex-end; gap:5px; height:130px; padding-top: 18px; position:relative; }
 .barschart .col { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; position:relative; }
 .barschart .bar { width: 100%; max-width: 32px; background: var(--series-1); border-radius: 4px 4px 0 0; position: relative; min-height: 2px; }
 .barschart .lbl { font-size: 10px; color: var(--text-muted); margin-top: 6px; }
@@ -401,11 +401,14 @@ function dibujarCuadrante(data) {
   for (let xv = Math.ceil(xMin/xStep)*xStep; xv <= xMax; xv += xStep) {
     svg += `<text x="${sx(xv)}" y="${PY1+18}" text-anchor="middle" class="axis-lbl">$${xv}</text>`;
   }
+  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
   for (const c of todos) {
     const y = sy(Number(c.ocupacion_prom));
     const isSel = c.id === cuad.club.id;
     const col = isSel ? 'var(--series-focus)' : 'var(--gridline)';
-    svg += `<line x1="${sx(Number(c.precio_min))}" y1="${y}" x2="${sx(Number(c.precio_max))}" y2="${y}" stroke="${col}" stroke-width="4" stroke-linecap="round" opacity="0.55"/>`;
+    const x1 = clamp(sx(Number(c.precio_min)), PX0, PX1);
+    const x2 = clamp(sx(Number(c.precio_max)), PX0, PX1);
+    svg += `<line x1="${x1}" y1="${y}" x2="${x2}" y2="${y}" stroke="${col}" stroke-width="4" stroke-linecap="round" opacity="0.55"/>`;
   }
   const labels = [];
   for (const c of todos) {
