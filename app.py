@@ -67,7 +67,8 @@ def api_clubes():
     try:
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         cur.execute(
-            "SELECT tenant_id AS id, nombre, mercado, canchas FROM clubs ORDER BY nombre"
+            "SELECT tenant_id AS id, nombre, mercado, canchas FROM clubs "
+            "WHERE excluir_analisis = false ORDER BY nombre"
         )
         return jsonify(cur.fetchall())
     finally:
@@ -88,9 +89,12 @@ def api_semanas():
 
 
 def obtener_grupo(cur, club_id):
-    """Club + sus hasta 15 vecinos (10km). Devuelve (club, vecinos, ids_grupo)."""
+    """Club + sus hasta 15 vecinos (10km). Devuelve (club, vecinos, ids_grupo).
+    Clubes marcados excluir_analisis (privados, sin pricing real) no son
+    seleccionables ni aunque se pida su id directo."""
     cur.execute(
-        "SELECT tenant_id AS id, nombre, mercado, canchas FROM clubs WHERE tenant_id = %s",
+        "SELECT tenant_id AS id, nombre, mercado, canchas FROM clubs "
+        "WHERE tenant_id = %s AND excluir_analisis = false",
         (club_id,),
     )
     club = cur.fetchone()
