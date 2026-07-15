@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vaxta Edge — Dashboard Semanal · {{ club.nombre }}</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy:   #1E2D4A;
+    --teal:   #1A8A8A;
+    --teal-light: #22a8a8;
+    --sand:   #E8E6E1;
+    --dark:   #2D2D2D;
+    --white:  #FFFFFF;
+    --red:    #C0392B;
+    --green:  #1A7A4A;
+    --amber:  #D4820A;
+    --border: #d4d0c8;
+    --bg:     #F5F3EE;
+    --muted:  #7a7670;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--dark); font-size: 14px; line-height: 1.6; }
+  .header { background: var(--navy); color: var(--white); padding: 32px 48px 28px; display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid var(--teal); }
+  .brand { font-family: 'Cormorant Garamond', serif; font-size: 13px; font-weight: 400; letter-spacing: 3px; text-transform: uppercase; color: var(--teal-light); margin-bottom: 8px; }
+  .club-name { font-family: 'Cormorant Garamond', serif; font-size: 36px; font-weight: 700; line-height: 1.1; color: var(--white); }
+  .club-meta { margin-top: 6px; font-size: 13px; color: rgba(255,255,255,0.55); letter-spacing: 0.5px; }
+  .header-right { text-align: right; }
+  .semana-label { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--teal-light); margin-bottom: 4px; }
+  .semana-rango { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 600; color: var(--white); }
+  .header-meta { margin-top: 8px; font-size: 12px; color: rgba(255,255,255,0.45); }
+  .tagline { margin-top: 16px; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: rgba(255,255,255,0.3); font-style: italic; }
+  .container { max-width: 1080px; margin: 0 auto; padding: 0 32px 64px; }
+  .section { margin-top: 48px; }
+  .section-header { display: flex; align-items: baseline; gap: 16px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+  .section-num { font-family: 'Cormorant Garamond', serif; font-size: 13px; color: var(--teal); letter-spacing: 2px; font-weight: 600; }
+  .section-title { font-family: 'Cormorant Garamond', serif; font-size: 24px; font-weight: 700; color: var(--navy); }
+  .section-sub { font-size: 12px; color: var(--muted); margin-left: auto; font-style: italic; }
+  .kpi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .kpi-card { background: var(--white); border: 1px solid var(--border); border-radius: 4px; padding: 20px 20px 16px; position: relative; overflow: hidden; }
+  .kpi-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+  .kpi-card.positive::before { background: var(--green); }
+  .kpi-card.negative::before { background: var(--red); }
+  .kpi-card.neutral::before  { background: var(--teal); }
+  .kpi-card.warning::before  { background: var(--amber); }
+  .kpi-label { font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+  .kpi-value { font-family: 'Cormorant Garamond', serif; font-size: 42px; font-weight: 700; color: var(--navy); line-height: 1; }
+  .kpi-unit { font-size: 16px; font-weight: 400; color: var(--muted); margin-left: 2px; }
+  .kpi-delta { margin-top: 10px; font-size: 12px; display: flex; align-items: center; gap: 6px; }
+  .kpi-delta .arrow { font-size: 14px; }
+  .kpi-delta.up   { color: var(--green); }
+  .kpi-delta.down { color: var(--red); }
+  .kpi-delta.flat { color: var(--muted); }
+  .kpi-bench { margin-top: 6px; font-size: 11px; color: var(--muted); padding-top: 6px; border-top: 1px solid var(--border); }
+  .kpi-bench strong { color: var(--dark); }
+  .heatmap-wrap { background: var(--white); border: 1px solid var(--border); border-radius: 4px; padding: 24px; }
+  .heatmap-title { font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 16px; }
+  .heatmap-grid { display: grid; gap: 3px; }
+  .heatmap-header { font-size: 10px; color: var(--muted); text-align: center; padding: 4px 0; }
+  .heatmap-row-label { font-size: 11px; color: var(--dark); font-weight: 500; display: flex; align-items: center; padding-right: 8px; }
+  .hm-cell { height: 28px; border-radius: 2px; position: relative; cursor: default; }
+  .hm-cell:hover::after { content: attr(data-val); position: absolute; bottom: 32px; left: 50%; transform: translateX(-50%); background: var(--navy); color: white; font-size: 10px; padding: 3px 6px; border-radius: 3px; white-space: nowrap; z-index: 10; }
+  .heatmap-legend { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 11px; color: var(--muted); }
+  .legend-bar { display: flex; gap: 2px; }
+  .legend-block { width: 20px; height: 10px; border-radius: 1px; }
+  .charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+  .chart-box { background: var(--white); border: 1px solid var(--border); border-radius: 4px; padding: 20px; }
+  .chart-title { font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 16px; }
+  .bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .bar-label { font-size: 12px; color: var(--dark); width: 32px; flex-shrink: 0; }
+  .bar-track { flex: 1; height: 18px; background: var(--sand); border-radius: 2px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 2px; transition: width 0.8s ease; }
+  .bar-val { font-size: 12px; color: var(--dark); font-weight: 500; width: 36px; text-align: right; flex-shrink: 0; }
+  .insight-box { background: #EAF5F5; border-left: 3px solid var(--teal); border-radius: 0 4px 4px 0; padding: 14px 18px; margin-top: 16px; font-size: 13px; color: var(--dark); }
+  .insight-box .label { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--teal); font-weight: 600; margin-bottom: 4px; }
+  .alert-box { background: #FEF3E2; border-left: 3px solid var(--amber); border-radius: 0 4px 4px 0; padding: 14px 18px; margin-top: 16px; font-size: 13px; color: var(--dark); }
+  .alert-box .label { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--amber); font-weight: 600; margin-bottom: 4px; }
+  .price-table { width: 100%; border-collapse: collapse; background: var(--white); border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
+  .price-table th { background: var(--navy); color: var(--white); font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; font-weight: 500; padding: 12px 16px; text-align: left; }
+  .price-table td { padding: 12px 16px; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .price-table tr:last-child td { border-bottom: none; }
+  .price-table tr:hover td { background: var(--bg); }
+  .price-table .franja { font-weight: 500; color: var(--navy); }
+  .price-table .diff-pos { color: var(--green); font-weight: 600; }
+  .price-table .diff-neg { color: var(--red); font-weight: 600; }
+  .price-table .diff-neu { color: var(--muted); }
+  .badge { display: inline-block; font-size: 10px; padding: 2px 8px; border-radius: 20px; letter-spacing: 1px; text-transform: uppercase; font-weight: 600; }
+  .badge-green { background: #d4ede0; color: var(--green); }
+  .badge-amber { background: #fdefd3; color: var(--amber); }
+  .badge-red   { background: #fad9d6; color: var(--red); }
+  .comp-table { width: 100%; border-collapse: collapse; background: var(--white); border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
+  .comp-table th { background: var(--navy); color: var(--white); font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; font-weight: 500; padding: 12px 16px; text-align: left; }
+  .comp-table td { padding: 13px 16px; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .comp-table tr:last-child td { border-bottom: none; }
+  .comp-table .mi-club td { background: #EAF5F5; font-weight: 600; color: var(--navy); }
+  .comp-table .promedio td { background: var(--bg); color: var(--muted); font-style: italic; font-size: 12px; }
+  .rank-badge { display: inline-block; width: 22px; height: 22px; border-radius: 50%; background: var(--navy); color: white; font-size: 11px; font-weight: 600; text-align: center; line-height: 22px; }
+  .rank-badge.top { background: var(--teal); }
+  .occ-bar-wrap { display: flex; align-items: center; gap: 8px; }
+  .occ-mini-track { width: 80px; height: 6px; background: var(--sand); border-radius: 3px; overflow: hidden; }
+  .occ-mini-fill { height: 100%; border-radius: 3px; }
+  .ingreso-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; }
+  .ingreso-card { background: var(--white); border: 1px solid var(--border); border-radius: 4px; padding: 20px; }
+  .ingreso-card .ic-label { font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+  .ingreso-card .ic-val { font-family: 'Cormorant Garamond', serif; font-size: 32px; font-weight: 700; color: var(--navy); line-height: 1; }
+  .ingreso-card .ic-sub { font-size: 11px; color: var(--muted); margin-top: 6px; }
+  .ingreso-card .ic-delta { margin-top: 8px; font-size: 12px; }
+  .reco-box { background: var(--navy); border-radius: 4px; padding: 32px 36px; display: flex; gap: 28px; align-items: flex-start; }
+  .reco-num { font-family: 'Cormorant Garamond', serif; font-size: 72px; font-weight: 700; color: var(--teal); line-height: 1; flex-shrink: 0; opacity: 0.6; }
+  .reco-eyebrow { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--teal-light); margin-bottom: 8px; }
+  .reco-title { font-family: 'Cormorant Garamond', serif; font-size: 28px; font-weight: 700; color: var(--white); line-height: 1.2; margin-bottom: 12px; }
+  .reco-body { font-size: 14px; color: rgba(255,255,255,0.75); line-height: 1.7; margin-bottom: 16px; }
+  .reco-paso { background: rgba(255,255,255,0.08); border: 1px solid rgba(26,138,138,0.4); border-radius: 4px; padding: 14px 18px; font-size: 13px; color: rgba(255,255,255,0.92); }
+  .reco-paso strong { color: var(--teal-light); }
+  .footnotes { margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--border); }
+  .footnotes-title { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+  .footnote { font-size: 11px; color: var(--muted); margin-bottom: 6px; padding-left: 16px; position: relative; }
+  .footnote::before { content: attr(data-n); position: absolute; left: 0; font-weight: 600; color: var(--teal); }
+  .footer { background: var(--navy); color: rgba(255,255,255,0.4); padding: 24px 48px; display: flex; justify-content: space-between; align-items: center; font-size: 11px; margin-top: 48px; }
+  .footer-brand { font-family: 'Cormorant Garamond', serif; font-size: 16px; font-weight: 600; color: var(--teal-light); letter-spacing: 1px; }
+  .footer-note { max-width: 480px; line-height: 1.5; }
+  sup { font-size: 9px; color: var(--teal); font-weight: 600; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <div class="brand">Vaxta Edge · Inteligencia de Pádel</div>
+    <div class="club-name">{{ club.nombre }}</div>
+    <div class="club-meta">{{ club.ciudad }} &nbsp;·&nbsp; {{ club.canchas }} canchas &nbsp;·&nbsp; {{ club.mercado }}</div>
+    <div class="tagline">Tu club en datos. Cada semana.</div>
+  </div>
+  <div class="header-right">
+    <div class="semana-label">Reporte Semanal</div>
+    <div class="semana-rango">{{ semana_rango }}</div>
+    <div class="header-meta">Generado el {{ fecha_generado }} &nbsp;·&nbsp; Semana {{ semana_numero }}</div>
+  </div>
+</div>
+
+<div class="container">
+
+<!-- S1 RESUMEN EJECUTIVO -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-num">S1</span>
+    <span class="section-title">Resumen Ejecutivo</span>
+    <span class="section-sub">¿Cómo estuvo la semana en 30 segundos?</span>
+  </div>
+  <div class="kpi-grid">
+    <div class="kpi-card {{ kpi_ocupacion.card_class }}">
+      <div class="kpi-label">Ocupación Semanal <sup>①</sup></div>
+      <div class="kpi-value">{{ kpi_ocupacion.valor }}<span class="kpi-unit">%</span></div>
+      <div class="kpi-delta {{ kpi_ocupacion.delta_class }}"><span class="arrow">{{ kpi_ocupacion.delta_arrow }}</span> {{ kpi_ocupacion.delta_texto }}</div>
+      <div class="kpi-bench">Promedio zona: <strong>{{ kpi_ocupacion.zona }}%</strong> &nbsp;·&nbsp; <span style="color:{{ kpi_ocupacion.zona_color }};font-weight:600;">{{ kpi_ocupacion.zona_texto }}</span></div>
+    </div>
+    <div class="kpi-card {{ kpi_ingreso.card_class }}">
+      <div class="kpi-label">Ingreso Estimado <sup>②</sup></div>
+      <div class="kpi-value">${{ kpi_ingreso.valor }}<span class="kpi-unit">{{ kpi_ingreso.unidad }}</span></div>
+      <div class="kpi-delta {{ kpi_ingreso.delta_class }}"><span class="arrow">{{ kpi_ingreso.delta_arrow }}</span> {{ kpi_ingreso.delta_texto }}</div>
+      <div class="kpi-bench">Basado en horas reservadas × precio promedio</div>
+    </div>
+    <div class="kpi-card {{ kpi_precio.card_class }}">
+      <div class="kpi-label">Precio Promedio / Hora <sup>③</sup></div>
+      <div class="kpi-value">$<span style="font-size:36px">{{ kpi_precio.valor }}</span></div>
+      <div class="kpi-delta {{ kpi_precio.delta_class }}"><span class="arrow">{{ kpi_precio.delta_arrow }}</span> {{ kpi_precio.delta_texto }}</div>
+      <div class="kpi-bench">Promedio zona: <strong>${{ kpi_precio.zona }}</strong> &nbsp;·&nbsp; <span style="color:{{ kpi_precio.zona_color }};font-weight:600;">{{ kpi_precio.zona_texto }}</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- S2 OCUPACIÓN -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-num">S2</span>
+    <span class="section-title">Ocupación</span>
+    <span class="section-sub">¿Cuándo se llenan tus canchas y cuándo no?</span>
+  </div>
+
+  <div class="heatmap-wrap">
+    <div class="heatmap-title">Ocupación por hora y día de la semana (%)</div>
+    <div class="heatmap-grid" style="grid-template-columns:60px repeat({{ horas_headers|length }},1fr)">
+      <div></div>
+      {% for h in horas_headers %}<div class="heatmap-header">{{ h }}h</div>{% endfor %}
+      {% for row in heatmap %}
+      <div class="heatmap-row-label">{{ row.label }}</div>
+      {% for cell in row.cells %}<div class="hm-cell" style="background:{{ cell.color }}" data-val="{{ cell.val }}"></div>{% endfor %}
+      {% endfor %}
+    </div>
+    <div class="heatmap-legend">
+      <span>Ocupación:</span>
+      <div class="legend-bar">
+        <div class="legend-block" style="background:#fad9d6"></div>
+        <div class="legend-block" style="background:#fdefd3"></div>
+        <div class="legend-block" style="background:#e8f5f0"></div>
+        <div class="legend-block" style="background:#b8e0d4"></div>
+        <div class="legend-block" style="background:#7fc8b4"></div>
+        <div class="legend-block" style="background:#52b89a"></div>
+        <div class="legend-block" style="background:#2ea882"></div>
+        <div class="legend-block" style="background:#1A8A8A"></div>
+      </div>
+      <span>Baja &lt;30% → Alta &gt;85%</span>
+      <span style="margin-left:16px;color:var(--muted)">(Pasa el cursor sobre cada celda para ver el porcentaje exacto)</span>
+    </div>
+  </div>
+
+  <div class="charts-row">
+    <div class="chart-box">
+      <div class="chart-title">Ocupación por día de la semana</div>
+      {% for d in ocupacion_dias %}
+      <div class="bar-row">
+        <div class="bar-label">{{ d.label }}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:{{ d.pct }}%;background:{{ d.color }}"></div></div>
+        <div class="bar-val" style="color:{{ d.color }}">{{ d.pct }}%</div>
+      </div>
+      {% endfor %}
+    </div>
+    <div class="chart-box">
+      <div class="chart-title">Momentos clave de la semana</div>
+      <div style="display:flex;flex-direction:column;gap:12px;margin-top:4px;">
+        <div style="background:var(--bg);border-radius:4px;padding:14px;">
+          <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">🏆 Hora pico</div>
+          <div style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:var(--navy)">{{ hora_pico.label }}</div>
+          <div style="font-size:13px;color:var(--green);font-weight:600;">{{ hora_pico.val }}% de ocupación</div>
+        </div>
+        <div style="background:var(--bg);border-radius:4px;padding:14px;">
+          <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">⚠️ Hora valle</div>
+          <div style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:var(--navy)">{{ hora_valle.label }}</div>
+          <div style="font-size:13px;color:var(--red);font-weight:600;">{{ hora_valle.val }}% de ocupación</div>
+        </div>
+        <div style="background:var(--bg);border-radius:4px;padding:14px;">
+          <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">📊 Días sobre 70%</div>
+          <div style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:var(--navy)">{{ dias_sobre_70.count }} de 7 días</div>
+          <div style="font-size:13px;color:var(--muted)">{{ dias_sobre_70.lista }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="insight-box">
+    <div class="label">Acción sugerida</div>
+    {{ insight_ocupacion }}
+  </div>
+</div>
+
+<!-- S3 PRECIOS -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-num">S3</span>
+    <span class="section-title">Precios</span>
+    <span class="section-sub">¿Estás cobrando lo correcto?</span>
+  </div>
+
+  <table class="price-table">
+    <thead>
+      <tr><th>Franja horaria</th><th>Tu precio / hora <sup>③</sup></th><th>Promedio zona</th><th>Diferencia</th><th>Posicionamiento</th></tr>
+    </thead>
+    <tbody>
+      {% for f in franjas %}
+      <tr>
+        <td class="franja">{{ f.emoji }} {{ f.nombre }} &nbsp;<small style="color:var(--muted);font-weight:400;">{{ f.horario }}</small></td>
+        <td><strong>{{ f.precio_club }}</strong></td>
+        <td>{{ f.precio_zona }}</td>
+        <td class="{{ f.diff_class }}">{{ f.diff_texto }}</td>
+        <td><span class="badge {{ f.badge_class }}">{{ f.badge_texto }}</span></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="alert-box">
+    <div class="label">Oportunidad detectada</div>
+    {{ insight_precios }}
+  </div>
+</div>
+
+<!-- S4 COMPARATIVO DE ZONA -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-num">S4</span>
+    <span class="section-title">Tu Club en el Mercado</span>
+    <span class="section-sub">¿Dónde estás parado en tu zona?</span>
+  </div>
+
+  <div style="display:flex;gap:12px;margin-bottom:16px;">
+    <div style="background:var(--white);border:1px solid var(--border);border-radius:4px;padding:16px 20px;flex:1;text-align:center;">
+      <div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">Posición en ocupación</div>
+      <div style="font-family:'Cormorant Garamond',serif;font-size:36px;font-weight:700;color:var(--teal)">#{{ posicion_ocupacion }} <span style="font-size:16px;color:var(--muted)">de {{ total_clubes_grupo }} clubes</span></div>
+    </div>
+    <div style="background:var(--white);border:1px solid var(--border);border-radius:4px;padding:16px 20px;flex:1;text-align:center;">
+      <div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">Posición en precio</div>
+      <div style="font-family:'Cormorant Garamond',serif;font-size:36px;font-weight:700;color:var(--amber)">#{{ posicion_precio }} <span style="font-size:16px;color:var(--muted)">de {{ total_clubes_grupo }} clubes</span></div>
+    </div>
+    <div style="background:var(--white);border:1px solid var(--border);border-radius:4px;padding:16px 20px;flex:1;text-align:center;">
+      <div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">Clubes en tu zona</div>
+      <div style="font-family:'Cormorant Garamond',serif;font-size:36px;font-weight:700;color:var(--navy)">{{ total_clubes_grupo }} <span style="font-size:16px;color:var(--muted)">monitoreados (10km)</span></div>
+    </div>
+  </div>
+
+  <table class="comp-table">
+    <thead>
+      <tr><th>#</th><th>Club</th><th>Ocupación semana <sup>①</sup></th><th>Precio prom. / hora <sup>③</sup></th><th>Canchas</th></tr>
+    </thead>
+    <tbody>
+      {% for r in comparativo %}
+      <tr class="{{ 'mi-club' if r.es_mi_club else '' }}">
+        <td><span class="rank-badge {{ 'top' if r.rank <= 2 else '' }}">{{ r.rank }}</span></td>
+        <td>{{ '⭐ ' if r.es_mi_club else '' }}{{ r.nombre }}{{ ' (tu club)' if r.es_mi_club else '' }}</td>
+        <td><div class="occ-bar-wrap"><div class="occ-mini-track"><div class="occ-mini-fill" style="width:{{ r.ocupacion }}%;background:{{ r.ocupacion_color }}"></div></div><span>{{ r.ocupacion }}%</span></div></td>
+        <td>{{ r.precio }}</td>
+        <td>{{ r.canchas }}</td>
+      </tr>
+      {% endfor %}
+      <tr class="promedio">
+        <td>—</td><td>Promedio de zona</td>
+        <td><div class="occ-bar-wrap"><div class="occ-mini-track"><div class="occ-mini-fill" style="width:{{ promedio_zona.ocupacion }}%;background:var(--muted)"></div></div><span>{{ promedio_zona.ocupacion }}%</span></div></td>
+        <td>{{ promedio_zona.precio }}</td><td>—</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="insight-box">
+    <div class="label">Lectura del mercado</div>
+    {{ insight_mercado }}
+  </div>
+</div>
+
+<!-- S5 INGRESO ESTIMADO -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-num">S5</span>
+    <span class="section-title">Ingreso Estimado de Canchas</span>
+    <span class="section-sub">¿Cuánto generaron tus canchas esta semana?</span>
+  </div>
+
+  <div class="ingreso-grid">
+    <div class="ingreso-card">
+      <div class="ic-label">Ingreso estimado semanal <sup>②</sup></div>
+      <div class="ic-val">${{ ingreso.total }}</div>
+      <div class="ic-sub">{{ club.canchas }} canchas · {{ kpi_ocupacion.valor }}% ocupación · ${{ kpi_precio.valor }}/hr promedio</div>
+      <div class="ic-delta" style="color:{{ ingreso.delta_color }};font-weight:600;margin-top:8px;font-size:13px;">{{ ingreso.delta_texto }}</div>
+    </div>
+    <div class="ingreso-card">
+      <div class="ic-label">Horas vendidas en la semana</div>
+      <div class="ic-val">{{ ingreso.horas_vendidas }}<span style="font-size:18px;color:var(--muted);font-weight:400;"> hrs</span></div>
+      <div class="ic-sub">de {{ ingreso.horas_disponibles }} horas disponibles totales</div>
+      <div class="ic-delta" style="color:var(--muted);font-size:12px;margin-top:8px;">{{ ingreso.horas_vacias }} horas sin reserva = ingreso no capturado</div>
+    </div>
+    <div class="ingreso-card">
+      <div class="ic-label">Ingreso no capturado (horas vacías)</div>
+      <div class="ic-val" style="color:var(--amber)">${{ ingreso.no_capturado }}</div>
+      <div class="ic-sub">{{ ingreso.horas_vacias }} hrs × ${{ kpi_precio.valor }} promedio — oportunidad latente</div>
+      <div class="ic-delta" style="color:var(--muted);font-size:12px;margin-top:8px;">Si alcanzaras 75% occ. = +${{ ingreso.proyeccion_75 }} adicionales</div>
+    </div>
+  </div>
+
+  <div class="insight-box">
+    <div class="label">Nota metodológica</div>
+    El ingreso estimado considera únicamente <strong>renta de canchas</strong> (horas reservadas × precio promedio por hora). No incluye clases, membresías, tienda, cafetería u otros servicios. Es un indicador de la línea de negocio principal, no del ingreso total del club.
+  </div>
+</div>
+
+<!-- S6 RECOMENDACIÓN -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-num">S6</span>
+    <span class="section-title">Recomendación de la Semana</span>
+    <span class="section-sub">Una sola cosa que hacer antes del próximo reporte</span>
+  </div>
+
+  <div class="reco-box">
+    <div class="reco-num">→</div>
+    <div class="reco-content">
+      <div class="reco-eyebrow">Acción prioritaria · Semana {{ semana_numero }}</div>
+      <div class="reco-title">{{ reco.titulo }}</div>
+      <div class="reco-body">{{ reco.cuerpo }}</div>
+      <div class="reco-paso"><strong>Paso concreto:</strong> {{ reco.paso }}</div>
+    </div>
+  </div>
+</div>
+
+<!-- NOTAS METODOLÓGICAS -->
+<div class="footnotes">
+  <div class="footnotes-title">Notas metodológicas</div>
+  <div class="footnote" data-n="①">Ocupación: porcentaje de horas-cancha reservadas sobre el total de horas disponibles en el período.</div>
+  <div class="footnote" data-n="②">Ingreso estimado de canchas: calculado como horas reservadas × precio promedio por hora. Incluye únicamente renta de canchas. No refleja ingresos por clases, academia, membresías, tienda u otros servicios.</div>
+  <div class="footnote" data-n="③">Precio por hora: calculado sobre slots normalizados a su equivalente de 1 hora, para garantizar comparabilidad entre clubes.</div>
+  <div class="footnote" data-n="④">Datos de competidores: provienen del sistema de monitoreo Vaxta Edge sobre clubes dentro de 10km. Reflejan disponibilidad pública, no datos internos de esos clubes.</div>
+</div>
+
+</div>
+
+<div class="footer">
+  <div>
+    <div class="footer-brand">Vaxta Edge</div>
+    <div style="margin-top:4px;">Inteligencia de mercado para la industria del pádel</div>
+    <div style="margin-top:2px;">vaxtapadel.com/edge</div>
+  </div>
+  <div class="footer-note">
+    Este reporte es confidencial y fue generado exclusivamente para {{ club.nombre }}. Los datos de ocupación y precios de competidores son estimados a partir del sistema de monitoreo Vaxta Edge y no representan información interna de esos clubes. Para preguntas sobre metodología, escribe a edge@vaxtapadel.com.
+  </div>
+  <div style="text-align:right;">
+    <div>Reporte generado: {{ fecha_generado }}</div>
+    <div style="margin-top:2px;">Semana {{ semana_numero }} · {{ anio }}</div>
+    <div style="margin-top:8px;color:rgba(255,255,255,0.2);font-size:10px;">© Vaxta Padel · Todos los derechos reservados</div>
+  </div>
+</div>
+
+</body>
+</html>
