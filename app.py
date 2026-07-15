@@ -27,6 +27,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 load_dotenv(os.path.join(HERE, ".env"))
 
 from reportes_semanal import generar_html_semanal  # noqa: E402  (después de load_dotenv)
+from reportes_mensual import generar_html_mensual  # noqa: E402
 
 app = Flask(__name__, static_folder="static", static_url_path="")
 
@@ -306,6 +307,18 @@ def reporte_semanal(club_id):
     semana = request.args.get("semana")
     try:
         html, club, semana_usada = generar_html_semanal(club_id, semana)
+    except ValueError as e:
+        return f"<p style='font-family:sans-serif;padding:40px'>{e}</p>", 404
+    return Response(html, mimetype="text/html")
+
+
+@app.route("/reporte/mensual/<club_id>")
+def reporte_mensual(club_id):
+    """Genera y sirve el reporte mensual de cualquier club en vivo
+    (?mes=YYYY-MM opcional, default = el último mes calendario completo)."""
+    mes = request.args.get("mes")
+    try:
+        html, club, mes_usado = generar_html_mensual(club_id, mes)
     except ValueError as e:
         return f"<p style='font-family:sans-serif;padding:40px'>{e}</p>", 404
     return Response(html, mimetype="text/html")

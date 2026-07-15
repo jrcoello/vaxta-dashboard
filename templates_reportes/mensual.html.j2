@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vaxta Edge — Dashboard Mensual · {{ club.nombre }}</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+  :root {
+    --navy:#1E2D4A; --teal:#1A8A8A; --teal-light:#22a8a8;
+    --sand:#E8E6E1; --dark:#2D2D2D; --white:#FFFFFF;
+    --red:#C0392B; --green:#1A7A4A; --amber:#D4820A;
+    --border:#d4d0c8; --bg:#F5F3EE; --muted:#7a7670;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--dark);font-size:14px;line-height:1.6;}
+
+  .sponsor-band{background:#162338;border-bottom:1px solid rgba(26,138,138,0.3);padding:8px 48px;display:flex;align-items:center;gap:14px;}
+  .sponsor-label{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,0.35);}
+  .sponsor-name{font-weight:600;color:rgba(255,255,255,0.85);font-size:13px;}
+
+  .header{background:var(--navy);color:var(--white);padding:28px 48px 24px;border-bottom:3px solid var(--teal);display:grid;grid-template-columns:auto 1fr auto;grid-template-rows:auto auto;align-items:start;gap:16px 24px;}
+  .header-logo img{height:44px;}
+  .header-label{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--teal-light);margin-bottom:2px;}
+  .club-name{font-family:'Cormorant Garamond',serif;font-size:36px;font-weight:700;color:var(--white);line-height:1.1;}
+  .club-meta{font-size:12px;color:rgba(255,255,255,0.5);margin-top:4px;}
+  .header-right{text-align:right;}
+  .mes-label{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--teal-light);margin-bottom:3px;}
+  .mes-rango{font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:700;color:var(--white);}
+  .header-meta{font-size:11px;color:rgba(255,255,255,0.4);margin-top:6px;}
+  .tagline{margin-top:12px;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,0.2);font-style:italic;}
+  .header-full-row{background:var(--navy);padding:0 48px 24px;}
+  .header-summary{background:rgba(26,138,138,0.12);border:1px solid rgba(26,138,138,0.3);border-radius:4px;padding:12px 18px;font-size:13px;line-height:1.6;width:100%;color:rgba(255,255,255,0.85);}
+
+  .container{width:100%;padding:0 48px 64px;}
+
+  .section{margin-top:44px;}
+  .section-header{display:flex;align-items:baseline;gap:14px;margin-bottom:18px;padding-bottom:10px;border-bottom:1px solid var(--border);}
+  .section-num{font-family:'Cormorant Garamond',serif;font-size:13px;color:var(--teal);letter-spacing:2px;font-weight:600;}
+  .section-title{font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:700;color:var(--navy);}
+  .section-sub{font-size:12px;color:var(--muted);margin-left:auto;font-style:italic;}
+
+  .kpi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+  .kpi-grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-top:14px;}
+  .kpi-card{background:var(--white);border:1px solid var(--border);border-radius:4px;padding:18px 18px 14px;position:relative;overflow:hidden;}
+  .kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+  .kpi-card.positive::before{background:var(--green);}
+  .kpi-card.negative::before{background:var(--red);}
+  .kpi-card.neutral::before{background:var(--teal);}
+  .kpi-card.warning::before{background:var(--amber);}
+  .kpi-label{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+  .kpi-value{font-family:'Cormorant Garamond',serif;font-size:38px;font-weight:700;color:var(--navy);line-height:1;}
+  .kpi-unit{font-size:16px;font-weight:400;color:var(--muted);margin-left:1px;}
+  .kpi-delta{margin-top:8px;font-size:12px;display:flex;align-items:center;gap:5px;}
+  .kpi-delta.up{color:var(--green);} .kpi-delta.down{color:var(--red);} .kpi-delta.flat{color:var(--muted);}
+  .kpi-bench{margin-top:6px;font-size:11px;color:var(--muted);padding-top:6px;border-top:1px solid var(--border);}
+  sup{font-size:9px;color:var(--teal);font-weight:600;}
+
+  .sem-table{width:100%;border-collapse:collapse;background:var(--white);border:1px solid var(--border);border-radius:4px;overflow:hidden;}
+  .sem-table th{background:var(--navy);color:var(--white);font-size:11px;letter-spacing:1.5px;text-transform:uppercase;font-weight:500;padding:11px 14px;text-align:left;}
+  .sem-table td{padding:12px 14px;border-bottom:1px solid var(--border);font-size:13px;}
+  .sem-table tr:hover td{background:var(--bg);}
+  .up{color:var(--green);font-weight:600;} .down{color:var(--red);font-weight:600;} .flat{color:var(--muted);}
+
+  .line-chart-wrap{background:var(--white);border:1px solid var(--border);border-radius:4px;padding:20px;margin-top:14px;}
+  .lc-title{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:16px;}
+  svg.line-chart{width:100%;height:160px;}
+
+  .heatmap-wrap{background:var(--white);border:1px solid var(--border);border-radius:4px;padding:22px;}
+  .heatmap-title{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:14px;}
+  .heatmap-grid{display:grid;gap:3px;}
+  .heatmap-header{font-size:10px;color:var(--muted);text-align:center;padding:3px 0;}
+  .heatmap-row-label{font-size:11px;color:var(--dark);font-weight:500;display:flex;align-items:center;padding-right:8px;}
+  .hm-cell{height:24px;border-radius:2px;cursor:default;position:relative;}
+  .hm-cell:hover::after{content:attr(data-val);position:absolute;bottom:28px;left:50%;transform:translateX(-50%);background:var(--navy);color:white;font-size:10px;padding:3px 6px;border-radius:3px;white-space:nowrap;z-index:10;}
+  .heatmap-legend{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:11px;color:var(--muted);}
+  .legend-bar{display:flex;gap:2px;}
+  .legend-block{width:18px;height:9px;border-radius:1px;}
+
+  .charts-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px;}
+  .chart-box{background:var(--white);border:1px solid var(--border);border-radius:4px;padding:18px;}
+  .chart-title{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:14px;}
+  .bar-row{display:flex;align-items:center;gap:10px;margin-bottom:7px;}
+  .bar-label{font-size:12px;color:var(--dark);width:30px;flex-shrink:0;}
+  .bar-track{flex:1;height:16px;background:var(--sand);border-radius:2px;overflow:hidden;}
+  .bar-fill{height:100%;border-radius:2px;}
+  .bar-val{font-size:12px;font-weight:500;width:34px;text-align:right;flex-shrink:0;}
+
+  .insight-box{background:#EAF5F5;border-left:3px solid var(--teal);border-radius:0 4px 4px 0;padding:13px 16px;margin-top:14px;font-size:13px;color:var(--dark);}
+  .insight-box .label{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--teal);font-weight:600;margin-bottom:3px;}
+  .alert-box{background:#FEF3E2;border-left:3px solid var(--amber);border-radius:0 4px 4px 0;padding:13px 16px;margin-top:14px;font-size:13px;}
+  .alert-box .label{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--amber);font-weight:600;margin-bottom:3px;}
+
+  .price-table{width:100%;border-collapse:collapse;background:var(--white);border:1px solid var(--border);border-radius:4px;overflow:hidden;}
+  .price-table th{background:var(--navy);color:var(--white);font-size:11px;letter-spacing:1.5px;text-transform:uppercase;font-weight:500;padding:11px 14px;text-align:left;}
+  .price-table td{padding:11px 14px;border-bottom:1px solid var(--border);font-size:13px;}
+  .price-table tr:last-child td{border-bottom:none;}
+  .price-table tr:hover td{background:var(--bg);}
+  .price-table .franja{font-weight:500;color:var(--navy);}
+  .diff-pos{color:var(--green);font-weight:600;} .diff-neg{color:var(--red);font-weight:600;} .diff-neu{color:var(--muted);}
+  .badge{display:inline-block;font-size:10px;padding:2px 8px;border-radius:20px;letter-spacing:1px;text-transform:uppercase;font-weight:600;}
+  .badge-green{background:#d4ede0;color:var(--green);} .badge-amber{background:#fdefd3;color:var(--amber);} .badge-red{background:#fad9d6;color:var(--red);}
+
+  .simulador{background:var(--white);border:1px solid var(--border);border-radius:4px;padding:20px;margin-top:14px;}
+  .sim-title{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:12px;}
+  .sim-row{display:flex;align-items:center;gap:12px;margin-bottom:8px;font-size:13px;}
+  .sim-label{color:var(--muted);width:260px;flex-shrink:0;}
+  .sim-impact{color:var(--green);font-weight:600;}
+
+  .mapa-wrap{background:var(--white);border:1px solid var(--border);border-radius:4px;overflow:hidden;margin-top:0;}
+  .mapa-header{background:var(--navy);padding:12px 16px;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--teal-light);}
+  #map-mensual{height:420px;width:100%;}
+
+  .comp-table{width:100%;border-collapse:collapse;background:var(--white);border:1px solid var(--border);border-radius:4px;overflow:hidden;margin-top:14px;}
+  .comp-table th{background:var(--navy);color:var(--white);font-size:11px;letter-spacing:1.5px;text-transform:uppercase;font-weight:500;padding:11px 14px;text-align:left;}
+  .comp-table td{padding:11px 14px;border-bottom:1px solid var(--border);font-size:13px;}
+  .mi-club td{background:#EAF5F5;font-weight:600;color:var(--navy);}
+  .promedio td{background:var(--bg);color:var(--muted);font-style:italic;font-size:12px;}
+  .rank-badge{display:inline-block;width:22px;height:22px;border-radius:50%;background:var(--navy);color:white;font-size:11px;font-weight:600;text-align:center;line-height:22px;}
+  .rank-badge.top{background:var(--teal);}
+  .occ-bar-wrap{display:flex;align-items:center;gap:8px;}
+  .occ-mini-track{width:80px;height:6px;background:var(--sand);border-radius:3px;overflow:hidden;}
+  .occ-mini-fill{height:100%;border-radius:3px;}
+
+  .ingreso-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+  .ingreso-card{background:var(--white);border:1px solid var(--border);border-radius:4px;padding:18px;}
+  .ic-label{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:7px;}
+  .ic-val{font-family:'Cormorant Garamond',serif;font-size:32px;font-weight:700;color:var(--navy);line-height:1;}
+  .ic-sub{font-size:11px;color:var(--muted);margin-top:5px;}
+
+  .decision-box{background:var(--navy);border-radius:4px;padding:32px 36px;}
+  .decision-eyebrow{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--teal-light);margin-bottom:8px;}
+  .decision-titulo{font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:700;color:var(--white);line-height:1.2;margin-bottom:12px;}
+  .decision-diagnostico{font-size:14px;color:rgba(255,255,255,0.72);line-height:1.7;margin-bottom:20px;}
+  .decision-caminos{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px;}
+  .camino{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:4px;padding:16px;}
+  .camino-label{font-size:10px;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;font-weight:600;}
+  .camino.a .camino-label{color:var(--teal-light);}
+  .camino.b .camino-label{color:rgba(255,255,255,0.5);}
+  .camino-text{font-size:13px;color:rgba(255,255,255,0.8);line-height:1.6;}
+  .decision-paso{background:rgba(26,138,138,0.15);border:1px solid rgba(26,138,138,0.4);border-radius:4px;padding:14px 18px;font-size:13px;color:rgba(255,255,255,0.9);}
+  .decision-paso strong{color:var(--teal-light);}
+
+  .footnotes{margin-top:36px;padding-top:18px;border-top:1px solid var(--border);}
+  .footnotes-title{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+  .footnote{font-size:11px;color:var(--muted);margin-bottom:5px;padding-left:16px;position:relative;}
+  .footnote::before{content:attr(data-n);position:absolute;left:0;font-weight:600;color:var(--teal);}
+
+  .footer{background:var(--navy);color:rgba(255,255,255,0.4);padding:22px 48px;display:flex;justify-content:space-between;align-items:center;font-size:11px;margin-top:48px;}
+  .footer-brand{font-family:'Cormorant Garamond',serif;font-size:15px;font-weight:600;color:var(--teal-light);letter-spacing:1px;}
+  .footer-note{max-width:440px;line-height:1.5;}
+</style>
+</head>
+<body>
+
+<div class="sponsor-band">
+  <span class="sponsor-label">Patrocinado por</span>
+  <span class="sponsor-name">(Espacio para Patrocinador)</span>
+</div>
+
+<div class="header">
+  <div class="header-logo">
+    <img src="/logo_vaxta_edge.png" alt="Vaxta Edge">
+    <div class="tagline">Tu club en datos. Cada mes.</div>
+  </div>
+  <div class="header-center">
+    <div class="header-label">Reporte Mensual · Vaxta Edge</div>
+    <div class="club-name">{{ club.nombre }}</div>
+    <div class="club-meta">{{ club.ciudad }} &nbsp;·&nbsp; {{ club.canchas }} canchas &nbsp;·&nbsp; {{ club.mercado }}</div>
+  </div>
+  <div class="header-right">
+    <div class="mes-label">Reporte Mensual</div>
+    <div class="mes-rango">{{ mes_nombre }} {{ anio }}</div>
+    <div class="header-meta">Generado el {{ fecha_generado }}</div>
+  </div>
+</div>
+
+<div class="header-full-row">
+  <div class="header-summary">{{ resumen_header }}</div>
+</div>
+
+<div class="container">
+
+<!-- S1 RESUMEN EJECUTIVO -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-num">S1</span>
+    <span class="section-title">Resumen Ejecutivo del Mes</span>
+    <span class="section-sub">Los números que importan en 60 segundos</span>
+  </div>
+  <div class="kpi-grid">
+    <div class="kpi-card {{ kpi_ocupacion.card_class }}">
+      <div class="kpi-label">Ocupación Mensual <sup>①</sup></div>
+      <div class="kpi-value">{{ kpi_ocupacion.valor }}<span class="kpi-unit">%</span></div>
+      <div class="kpi-delta {{ kpi_ocupacion.delta_class }}"><span>{{ kpi_ocupacion.delta_arrow }}</span> {{ kpi_ocupacion.delta_texto }}</div>
+      <div class="kpi-bench">Promedio zona: <strong>{{ kpi_ocupacion.zona }}%</strong> &nbsp;·&nbsp; <span style="color:{{ kpi_ocupacion.zona_color }};font-weight:600;">{{ kpi_ocupacion.zona_texto }}</span></div>
+    </div>
+    <div class="kpi-card {{ kpi_ingreso.card_class }}">
+      <div class="kpi-label">Ingreso Estimado Mensual <sup>②</sup></div>
+      <div class="kpi-value" style="font-size:28px;">${{ ingreso.total }}</div>
+      <div class="kpi-delta {{ kpi_ingreso.delta_class }}"><span>{{ kpi_ingreso.delta_arrow }}</span> {{ kpi_ingreso.delta_texto }}</div>
+      <div class="kpi-bench">Proyección anual: <strong>~${{ ingreso.proyeccion_anual }}</strong> solo en renta de canchas</div>
+    </div>
+    <div class="kpi-card {{ kpi_precio.card_class }}">
+      <div class="kpi-label">Precio Promedio / Hora <sup>③</sup></div>
+      <div class="kpi-value" style="font-size:28px;">${{ kpi_precio.valor }}</div>
+      <div class="kpi-delta {{ kpi_precio.delta_class }}"><span>{{ kpi_precio.delta_arrow }}</span> {{ kpi_precio.delta_texto }}</div>
+      <div class="kpi-bench">Promedio zona: <strong>${{ kpi_precio.zona }}</strong> &nbsp;·&nbsp; <span style="color:{{ kpi_precio.zona_color }};font-weight:600;">{{ kpi_precio.zona_texto }}</span></div>
+    </div>
+  </div>
+  <div class="kpi-grid-2">
+    <div class="kpi-card neutral">
+      <div class="kpi-label">Ingreso por Cancha / Día <sup>②</sup></div>
+      <div class="kpi-value" style="font-size:28px;">${{ ingreso.por_cancha_dia }}</div>
+      <div class="kpi-delta flat"><span>→</span> Cada cancha generó este monto en promedio diario</div>
+      <div class="kpi-bench">Si llegaras a 70% occ: <strong>~${{ ingreso.por_cancha_dia_70 }}/cancha/día</strong></div>
+    </div>
+    <div class="kpi-card negative">
+      <div class="kpi-label">Ingreso No Capturado (Horas Vacías)</div>
+      <div class="kpi-value" style="font-size:28px;color:var(--amber);">${{ ingreso.no_capturado }}</div>
+      <div class="kpi-delta down"><span>→</span> Costo de oportunidad mensual</div>
+      <div class="kpi-bench">Horas vacías × precio promedio — oportunidad latente</div>
+    </div>
+  </div>
+</div>
+
+<!-- S2 EVOLUCIÓN SEMANAL -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-num">S2</span>
+    <span class="section-title">Evolución Semanal</span>
+    <span class="section-sub">¿Cómo se movió el mes semana a semana?</span>
+  </div>
+  <table class="sem-table">
+    <thead>
+      <tr><th>Sem.</th><th>Fechas</th><th>Ocupación <sup>①</sup></th><th>vs Zona</th><th>Precio <sup>③</sup></th><th>Ingreso Est. <sup>②</sup></th><th>Δ vs anterior</th></tr>
+    </thead>
+    <tbody>
+      {% for s in semanas %}
+      <tr>
+        <td><strong>S{{ s.numero }}</strong></td>
+        <td style="color:var(--muted);font-size:12px">{{ s.rango }}</td>
+        <td><strong>{{ s.ocupacion }}%</strong></td>
+        <td class="{{ s.vs_zona_class }}">{{ s.vs_zona_texto }}</td>
+        <td>${{ s.precio }}</td>
+        <td><strong>${{ s.ingreso }}</strong></td>
+        <td>{{ s.delta_html | safe }}</td>
+      </tr>
+      {% endfor %}
+      <tr style="background:var(--navy);color:white;font-weight:600">
+        <td colspan="2" style="color:white">Mes completo</td>
+        <td style="color:var(--teal-light)">{{ kpi_ocupacion.valor }}%</td>
+        <td style="color:var(--teal-light)">{{ kpi_ocupacion.zona_texto }}</td>
+        <td style="color:var(--teal-light)">${{ kpi_precio.valor }}</td>
+        <td style="color:var(--teal-light)">${{ ingreso.total }}</td>
+        <td style="color:rgba(255,255,255,0.5)">—</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="line-chart-wrap">
+    <div class="lc-title">Ocupación semanal: tu club vs promedio de zona (%)</div>
+    <svg class="line-chart" viewBox="0 0 900 160" xmlns="http://www.w3.org/2000/svg">
+      <line x1="60" y1="10" x2="60" y2="130" stroke="#d4d0c8" stroke-width="1"/>
+      <line x1="60" y1="130" x2="880" y2="130" stroke="#d4d0c8" stroke-width="1"/>
+      {% for yl in linea_y_labels %}
+      <text x="50" y="{{ yl.y }}" font-size="10" fill="#7a7670" text-anchor="end">{{ yl.label }}%</text>
+      <line x1="60" y1="{{ yl.y }}" x2="880" y2="{{ yl.y }}" stroke="#eeece7" stroke-width="1" stroke-dasharray="4,4"/>
+      {% endfor %}
+      <polyline points="{{ linea_club_points }}" fill="none" stroke="#1A8A8A" stroke-width="2.5"/>
+      {% for p in linea_club %}
+      <circle cx="{{ p.x }}" cy="{{ p.y }}" r="5" fill="#1A8A8A"/>
+      <text x="{{ p.x }}" y="{{ p.y_label }}" font-size="11" fill="#1A8A8A" text-anchor="middle" font-weight="600">{{ p.val }}%</text>
+      <text x="{{ p.x }}" y="148" font-size="11" fill="#7a7670" text-anchor="middle">S{{ p.numero }}</text>
+      {% endfor %}
+      <line x1="{{ linea_zona_x1 }}" y1="{{ linea_zona_y }}" x2="{{ linea_zona_x2 }}" y2="{{ linea_zona_y }}" stroke="#d4d0c8" stroke-width="1.5" stroke-dasharray="6,4"/>
+      <text x="{{ linea_zona_x2 + 20 }}" y="{{ linea_zona_y + 4 }}" font-size="10" fill="#7a7670">Zona {{ zona_ocup_mes }}%</text>
+      <rect x="650" y="155" width="14" height="3" fill="#1A8A8A" rx="1"/>
+      <text x="668" y="160" font-size="10" fill="#1A8A8A">{{ club.nombre }}</text>
+      <line x1="740" y1="157" x2="754" y2="157" stroke="#d4d0c8" stroke-width="1.5" stroke-dasharray="4,3"/>
+      <text x="758" y="160" font-size="10" fill="#7a7670">Zona</text>
+    </svg>
+  </div>
+
+  <div class="insight-box">
+    <div class="label">Tendencia del mes</div>
+    {{ insight_evolucion }}
+  </div>
+</div>
+
+<!-- S3 OCUPACIÓN MENSUAL -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-num">S3</span>
+    <span class="section-title">Análisis de Ocupación Mensual</span>
+    <span class="section-sub">Patrones que solo se ven en varias semanas</span>
+  </div>
+  <div class="heatmap-wrap">
+    <div class="heatmap-title">Ocupación promedio por hora y día — mes completo (%)</div>
+    <div class="heatmap-grid" style="grid-template-columns:60px repeat({{ horas_headers|length }},1fr)">
+      <div></div>
+      {% for h in horas_headers %}<div class="heatmap-header">{{ h }}h</div>{% endfor %}
+      {% for row in heatmap %}
+      <div class="heatmap-row-label">{{ row.label }}</div>
+      {% for cell in row.cells %}<div class="hm-cell" style="background:{{ cell.color }}" data-val="{{ cell.val }}"></div>{% endfor %}
+      {% endfor %}
+    </div>
+    <div class="heatmap-legend">
+      <span>Ocupación:</span>
+      <div class="legend-bar">
+        <div class="legend-block" style="background:#fad9d6"></div>
+        <div class="legend-block" style="background:#fdefd3"></div>
+        <div class="legend-block" style="background:#e8f5f0"></div>
+        <div class="legend-block" style="background:#b8e0d4"></div>
+        <div class="legend-block" style="background:#7fc8b4"></div>
+        <div class="legend-block" style="background:#52b89a"></div>
+        <div class="legend-block" style="background:#2ea882"></div>
+        <div class="legend-block" style="background:#1A8A8A"></div>
+      </div>
+      <span>Baja → Alta &nbsp;·&nbsp; <em style="color:var(--muted)">Pasa el cursor sobre cada celda para ver el porcentaje</em></span>
+    </div>
+  </div>
+
+  <div class="charts-row">
+    <div class="chart-box">
+      <div class="chart-title">Ocupación promedio por día de la semana</div>
+      {% for d in ocupacion_dias %}
+      <div class="bar-row">
+        <div class="bar-label">{{ d.label }}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:{{ d.pct }}%;background:{{ d.color_hex }}"></div></div>
+        <div class="bar-val" style="color:{{ d.color_hex }}">{{ d.pct }}%</div>
+      </div>
+      {% endfor %}
+    </div>
+    <div class="chart-box">
+      <div class="chart-title">Análisis de consistencia mensual</div>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:4px;">
+        <div style="background:var(--bg);border-radius:4px;padding:12px;">
+          <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:3px;">✅ Franjas más fuertes del mes (≥70%)</div>
+          <div style="font-size:13px;font-weight:500;color:var(--navy)">{{ franjas_fuertes }}</div>
+        </div>
+        <div style="background:var(--bg);border-radius:4px;padding:12px;">
+          <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:3px;">⚠️ Franjas más débiles del mes (&lt;35%)</div>
+          <div style="font-size:13px;font-weight:500;color:var(--navy)">{{ franjas_debiles }}</div>
+        </div>
+        <div style="background:var(--bg);border-radius:4px;padding:12px;">
+          <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:3px;">📊 Ratio fin de semana vs entre semana</div>
+          <div style="font-size:13px;font-weight:500;color:var(--navy)">{{ ratio_club }}</div>
+          <div style="font-size:11px;color:var(--muted)">Promedio zona: {{ ratio_zona }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="insight-box">
+    <div class="label">Patrón estructural detectado</div>
+    {{ insight_consistencia }}
+  </div>
+</div>
+
+<!-- S4 PRECIOS -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-num">S4</span>
+    <span class="section-title">Análisis de Precios</span>
+    <span class="section-sub">¿Tu estrategia de precios está funcionando?</span>
+  </div>
+  <table class="price-table">
+    <thead>
+      <tr><th>Franja</th><th>Tu precio <sup>③</sup></th><th>Zona</th><th>Diferencia</th><th>Posición</th><th>Tendencia</th></tr>
+    </thead>
+    <tbody>
+      {% for f in franjas %}
+      <tr>
+        <td class="franja">{{ f.emoji }} {{ f.nombre }} <small style="color:var(--muted);font-weight:400">{{ f.horario }}</small></td>
+        <td><strong>{{ f.precio_club }}</strong></td><td>{{ f.precio_zona }}</td><td class="{{ f.diff_class }}">{{ f.diff_texto }}</td>
+        <td><span class="badge {{ f.badge_class }}">{{ f.badge_texto }}</span></td>
+        <td style="color:var(--muted);font-size:12px">{{ f.tendencia }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="simulador">
+    <div class="sim-title">🔢 Simulador de impacto en ingreso mensual</div>
+    {% for s in simulador %}
+    <div class="sim-row">
+      <div class="sim-label">{{ s.texto }}</div>
+      <div class="sim-impact">{{ s.impacto }}</div>
+      <div style="font-size:11px;color:var(--muted);margin-left:8px;">{{ s.nota }}</div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- S5 POSICIÓN COMPETITIVA + MAPA -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-num">S5</span>
+    <span class="section-title">Posición Competitiva</span>
+    <span class="section-sub">Tu evolución en el mercado este mes</span>
+  </div>
+
+  <div class="mapa-wrap">
+    <div class="mapa-header">Mapa de competencia — {{ mes_nombre }} {{ anio }} · {{ club.mercado }}</div>
+    <div id="map-mensual"></div>
+  </div>
+
+  <table class="comp-table">
+    <thead>
+      <tr><th>#</th><th>Club</th><th>Ocupación mes <sup>①</sup></th><th>Precio prom. <sup>③</sup></th><th>Canchas</th></tr>
+    </thead>
+    <tbody>
+      {% for r in comparativo %}
+      <tr class="{{ 'mi-club' if r.es_mi_club else '' }}">
+        <td><span class="rank-badge {{ 'top' if r.rank <= 2 else '' }}">{{ r.rank }}</span></td>
+        <td>{{ '⭐ ' if r.es_mi_club else '' }}{{ r.nombre }}{{ ' (tu club)' if r.es_mi_club else '' }}</td>
+        <td><div class="occ-bar-wrap"><div class="occ-mini-track"><div class="occ-mini-fill" style="width:{{ r.ocupacion }}%;background:{{ r.color }}"></div></div><span style="color:{{ r.color }}">{{ r.ocupacion }}%</span></div></td>
+        <td>{{ r.precio }}</td>
+        <td>{{ r.canchas }}</td>
+      </tr>
+      {% endfor %}
+      <tr class="promedio">
+        <td>—</td><td>Promedio zona</td>
+        <td><div class="occ-bar-wrap"><div class="occ-mini-track"><div class="occ-mini-fill" style="width:{{ promedio_zona.ocupacion }}%;background:var(--muted)"></div></div><span>{{ promedio_zona.ocupacion }}%</span></div></td>
+        <td>{{ promedio_zona.precio }}</td><td>—</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="insight-box">
+    <div class="label">Movimiento en el mercado</div>
+    {{ insight_mercado }}
+  </div>
+</div>
+
+<!-- S6 INGRESO MENSUAL -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-num">S6</span>
+    <span class="section-title">Ingreso Estimado Mensual</span>
+    <span class="section-sub">La línea financiera de tus canchas</span>
+  </div>
+  <div class="ingreso-grid">
+    <div class="ingreso-card">
+      <div class="ic-label">Ingreso mensual de canchas <sup>②</sup></div>
+      <div class="ic-val">${{ ingreso.total }}</div>
+      <div class="ic-sub">{{ club.canchas }} canchas · {{ kpi_ocupacion.valor }}% ocupación · ${{ kpi_precio.valor }}/hr promedio</div>
+      <div style="margin-top:8px;font-size:13px;color:{{ kpi_ingreso.delta_color }};font-weight:600;">{{ kpi_ingreso.delta_arrow }} {{ kpi_ingreso.delta_texto }}</div>
+    </div>
+    <div class="ingreso-card">
+      <div class="ic-label">Ingreso por cancha / día</div>
+      <div class="ic-val">${{ ingreso.por_cancha_dia }}</div>
+      <div class="ic-sub">promedio mensual por cancha activa</div>
+      <div style="margin-top:8px;font-size:12px;color:var(--muted);">Proyección anual: <strong style="color:var(--navy)">${{ ingreso.proyeccion_anual }}</strong></div>
+    </div>
+    <div class="ingreso-card">
+      <div class="ic-label">Ingreso no capturado (horas vacías)</div>
+      <div class="ic-val" style="color:var(--amber)">${{ ingreso.no_capturado }}</div>
+      <div class="ic-sub">costo de oportunidad del mes</div>
+      <div style="margin-top:8px;font-size:12px;color:var(--muted);">Si llegaras a 70% occ: <strong style="color:var(--navy)">+${{ ingreso.impacto_70 }}</strong> adicionales/mes</div>
+    </div>
+  </div>
+</div>
+
+<!-- S7 DECISIÓN ESTRATÉGICA -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-num">S7</span>
+    <span class="section-title">Decisión Estratégica del Mes</span>
+    <span class="section-sub">La pregunta que deberías estar haciéndote</span>
+  </div>
+  <div class="decision-box">
+    <div class="decision-eyebrow">Diagnóstico · {{ mes_nombre }} {{ anio }}</div>
+    <div class="decision-titulo">{{ decision.titulo }}</div>
+    <div class="decision-diagnostico">{{ decision.diagnostico }}</div>
+    <div class="decision-caminos">
+      <div class="camino a">
+        <div class="camino-label">Camino A — {{ decision.camino_a_label }}</div>
+        <div class="camino-text">{{ decision.camino_a_texto }}</div>
+      </div>
+      <div class="camino b">
+        <div class="camino-label">Camino B — {{ decision.camino_b_label }}</div>
+        <div class="camino-text">{{ decision.camino_b_texto }}</div>
+      </div>
+    </div>
+    <div class="decision-paso">
+      <strong>Paso concreto:</strong> {{ decision.paso }}
+    </div>
+  </div>
+</div>
+
+<!-- NOTAS METODOLÓGICAS -->
+<div class="footnotes">
+  <div class="footnotes-title">Notas metodológicas</div>
+  <div class="footnote" data-n="①">Ocupación: porcentaje de horas-cancha reservadas sobre el total de horas disponibles. La ocupación mensual se calcula sobre el mes calendario completo.</div>
+  <div class="footnote" data-n="②">Ingreso estimado de canchas: horas reservadas × precio promedio por hora. No incluye clases, membresías, tienda u otros servicios.</div>
+  <div class="footnote" data-n="③">Precio por hora: calculado sobre slots de 1 hora únicamente, normalizados para comparabilidad entre franjas y clubes.</div>
+  <div class="footnote" data-n="④">Datos de competidores: sistema de monitoreo Vaxta Edge. Reflejan disponibilidad pública, no datos internos.</div>
+</div>
+
+</div><!-- /container -->
+
+<div class="footer">
+  <div>
+    <div class="footer-brand">Vaxta Edge</div>
+    <div style="margin-top:3px;">Inteligencia de mercado para la industria del pádel</div>
+    <div style="margin-top:2px;">vaxtapadel.com/edge</div>
+  </div>
+  <div class="footer-note">
+    Este reporte es confidencial y fue generado exclusivamente para {{ club.nombre }}. Para preguntas sobre metodología escribe a edge@vaxtapadel.com.
+  </div>
+  <div style="text-align:right;">
+    <div>Generado: {{ fecha_generado }}</div>
+    <div style="margin-top:2px;">{{ mes_nombre }} {{ anio }}</div>
+    <div style="margin-top:8px;color:rgba(255,255,255,0.2);font-size:10px;">© Vaxta Padel · Todos los derechos reservados</div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+var CLUBES = {{ clubes_mapa_json | safe }};
+
+var map = L.map('map-mensual', {zoomControl:true}).setView([{{ mapa_centro_lat }}, {{ mapa_centro_lng }}], 12);
+
+L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+  attribution: '&copy; OpenStreetMap &copy; CARTO',
+  subdomains: 'abcd', maxZoom: 19
+}).addTo(map);
+
+CLUBES.forEach(function(c) {
+  var marker = L.circleMarker([c.lat, c.lng], {
+    radius: c.size,
+    fillColor: c.color,
+    color: c.border,
+    weight: c.bw,
+    opacity: 1,
+    fillOpacity: 0.88
+  }).addTo(map);
+
+  var popupContent = '<div style="font-family:DM Sans,sans-serif;min-width:200px;">' +
+    '<div style="background:#1E2D4A;color:white;padding:8px 12px;margin:-10px -10px 8px;border-radius:4px 4px 0 0;font-size:12px;font-weight:600;">' +
+    (c.esClub ? '⭐ ' : '') + c.nombre + '</div>' +
+    '<div style="padding:0 2px;font-size:12px;">' +
+    '<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #eee;">' +
+    '<span style="color:#7a7670">Ocupación mes</span>' +
+    '<span style="font-weight:600;color:' + c.color + '">' + c.occ + '%</span></div>' +
+    '<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #eee;">' +
+    '<span style="color:#7a7670">Precio prom. 1h</span>' +
+    '<span style="font-weight:600">' + (c.precio ? '$' + c.precio : 'N/D') + '</span></div>' +
+    '<div style="display:flex;justify-content:space-between;padding:5px 0;">' +
+    '<span style="color:#7a7670">Canchas</span>' +
+    '<span style="font-weight:600">' + c.canchas + '</span></div>' +
+    '</div></div>';
+
+  marker.bindPopup(popupContent, {maxWidth:240});
+  if (c.esClub) { marker.openPopup(); }
+});
+
+setTimeout(function() { map.invalidateSize(); }, 200);
+</script>
+
+</body>
+</html>

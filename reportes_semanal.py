@@ -126,6 +126,71 @@ def precio_promedio_grupo(cur, tenant_ids, semana_inicio, semana_fin):
     return sum(precios) / len(precios) if precios else None
 
 
+def construir_heatmap(cur, tenant_id, fecha_ini, fecha_fin):
+    """Heatmap ocupación por día-de-semana × hora en [fecha_ini, fecha_fin).
+    Reusado por el reporte semanal (una semana) y el mensual (mes completo,
+    promediando todos los días que caen en cada día-de-semana/hora)."""
+    cur.execute(
+        """
+        SELECT EXTRACT(ISODOW FROM fecha)::int AS dow, hora_inicio, ocupacion_pct
+        FROM snapshots_ingreso
+        WHERE tenant_id = %s AND fecha >= %s AND fecha < %s
+        ORDER BY dow, hora_inicio
+        """,
+        (tenant_id, fecha_ini, fecha_fin),
+    )
+    rows = cur.fetchall()
+
+    horas_set = sorted({r["hora_inicio"] for r in rows})
+    horas_headers = [h.strftime("%H") for h in horas_set]
+    grid_valores = {}
+    for r in rows:
+        if r["ocupacion_pct"] is None:
+            continue
+        grid_valores.setdefault(r["dow"], {}).setdefault(r["hora_inicio"], []).append(float(r["ocupacion_pct"]))
+
+    grid = {}
+    heatmap = []
+    hora_pico = {"val": -1, "label": "N/D"}
+    hora_valle = {"val": 101, "label": "N/D"}
+    ocupacion_dias = []
+    dias_sobre_70_lista = []
+
+    for dow in range(1, 8):
+        label = DIAS_ES[dow - 1]
+        cells = []
+        valores_dia = []
+        for h in horas_set:
+            valores = grid_valores.get(dow, {}).get(h)
+            val = sum(valores) / len(valores) if valores else None
+            grid.setdefault(dow, {})[h] = val
+            cells.append({
+                "val": f"{val:.0f}%" if val is not None else "s/d",
+                "color": color_ocupacion(val),
+            })
+            if val is not None:
+                valores_dia.append(val)
+                if val > hora_pico["val"]:
+                    hora_pico = {"val": val, "label": f"{label} {h.strftime('%H')}h"}
+                if val < hora_valle["val"]:
+                    hora_valle = {"val": val, "label": f"{label} {h.strftime('%H')}h"}
+        heatmap.append({"label": label, "cells": cells})
+        prom_dia = sum(valores_dia) / len(valores_dia) if valores_dia else 0
+        ocupacion_dias.append({"label": label, "pct": f"{prom_dia:.0f}", "color": color_ocupacion(prom_dia), "_prom": prom_dia})
+        if prom_dia > 70:
+            dias_sobre_70_lista.append(label)
+
+    hora_pico["val"] = f"{hora_pico['val']:.0f}" if hora_pico["val"] >= 0 else "N/D"
+    hora_valle["val"] = f"{hora_valle['val']:.0f}" if hora_valle["val"] <= 100 else "N/D"
+    dias_sobre_70 = {"count": len(dias_sobre_70_lista), "lista": ", ".join(dias_sobre_70_lista) if dias_sobre_70_lista else "Ninguno"}
+
+    return {
+        "horas_set": horas_set, "horas_headers": horas_headers, "grid": grid,
+        "heatmap": heatmap, "ocupacion_dias": ocupacion_dias,
+        "hora_pico": hora_pico, "hora_valle": hora_valle, "dias_sobre_70": dias_sobre_70,
+    }
+
+
 def generar_html_semanal(club_id, semana_inicio=None, conn=None):
     """Calcula y renderiza el reporte semanal de un club.
 
@@ -238,54 +303,12 @@ def generar_html_semanal(club_id, semana_inicio=None, conn=None):
         }
 
         # ---------- S2: Heatmap + bar chart ----------
-        cur.execute(
-            """
-            SELECT EXTRACT(ISODOW FROM fecha)::int AS dow, hora_inicio, ocupacion_pct
-            FROM snapshots_ingreso
-            WHERE tenant_id = %s AND fecha >= %s AND fecha < %s
-            ORDER BY dow, hora_inicio
-            """,
-            (club_id, semana_inicio, semana_fin_exclusiva),
-        )
-        rows = cur.fetchall()
-
-        horas_set = sorted({r["hora_inicio"] for r in rows})
-        horas_headers = [h.strftime("%H") for h in horas_set]
-        grid = {}
-        for r in rows:
-            grid.setdefault(r["dow"], {})[r["hora_inicio"]] = float(r["ocupacion_pct"]) if r["ocupacion_pct"] is not None else None
-
-        heatmap = []
-        hora_pico = {"val": -1, "label": "N/D"}
-        hora_valle = {"val": 101, "label": "N/D"}
-        ocupacion_dias = []
-        dias_sobre_70_lista = []
-
-        for dow in range(1, 8):
-            label = DIAS_ES[dow - 1]
-            cells = []
-            valores_dia = []
-            for h in horas_set:
-                val = grid.get(dow, {}).get(h)
-                cells.append({
-                    "val": f"{val:.0f}%" if val is not None else "s/d",
-                    "color": color_ocupacion(val),
-                })
-                if val is not None:
-                    valores_dia.append(val)
-                    if val > hora_pico["val"]:
-                        hora_pico = {"val": val, "label": f"{label} {h.strftime('%H')}h"}
-                    if val < hora_valle["val"]:
-                        hora_valle = {"val": val, "label": f"{label} {h.strftime('%H')}h"}
-            heatmap.append({"label": label, "cells": cells})
-            prom_dia = sum(valores_dia) / len(valores_dia) if valores_dia else 0
-            ocupacion_dias.append({"label": label, "pct": f"{prom_dia:.0f}", "color": color_ocupacion(prom_dia)})
-            if prom_dia > 70:
-                dias_sobre_70_lista.append(label)
-
-        hora_pico["val"] = f"{hora_pico['val']:.0f}" if hora_pico["val"] >= 0 else "N/D"
-        hora_valle["val"] = f"{hora_valle['val']:.0f}" if hora_valle["val"] <= 100 else "N/D"
-        dias_sobre_70 = {"count": len(dias_sobre_70_lista), "lista": ", ".join(dias_sobre_70_lista) if dias_sobre_70_lista else "Ninguno esta semana"}
+        hm = construir_heatmap(cur, club_id, semana_inicio, semana_fin_exclusiva)
+        horas_set, horas_headers, grid = hm["horas_set"], hm["horas_headers"], hm["grid"]
+        heatmap, ocupacion_dias = hm["heatmap"], hm["ocupacion_dias"]
+        hora_pico, hora_valle, dias_sobre_70 = hm["hora_pico"], hm["hora_valle"], hm["dias_sobre_70"]
+        if dias_sobre_70["lista"] == "Ninguno":
+            dias_sobre_70["lista"] = "Ninguno esta semana"
 
         # Franjas bajas (<20%) entre semana (Lun-Vie), para el insight
         franjas_bajas = []

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Vaxta Edge — Reportes semanales</title>
+<title>Vaxta Edge — Reportes</title>
 <style>
 :root {
   --surface-1: #fcfcfb; --page:#f9f9f7; --text-primary:#0b0b0b; --text-secondary:#52514e;
@@ -43,8 +43,15 @@ input[type=text], select {
 .club-elegido .nombre { font-weight: 600; font-size: 13.5px; }
 .club-elegido button { background: none; border: none; color: var(--series-1); font-size: 12.5px; cursor: pointer; padding: 4px 6px; }
 
-.paso2 { margin-top: 22px; opacity: .4; pointer-events: none; transition: opacity .15s; }
-.paso2.activo { opacity: 1; pointer-events: auto; }
+.paso { margin-top: 22px; opacity: .4; pointer-events: none; transition: opacity .15s; }
+.paso.activo { opacity: 1; pointer-events: auto; }
+
+.tipo-row { display: flex; gap: 8px; }
+.tipo-btn {
+  flex: 1; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border);
+  background: var(--surface-1); color: var(--text-primary); font-size: 13.5px; font-weight: 600; cursor: pointer;
+}
+.tipo-btn.activo { background: var(--series-1); border-color: var(--series-1); color: #fff; }
 
 .btn-ver {
   width: 100%; margin-top: 18px; padding: 12px; border-radius: 8px; border: none;
@@ -56,8 +63,8 @@ input[type=text], select {
 <body>
 <div class="wrap">
   <div class="hdr">
-    <h1>Vaxta Edge — Reportes semanales</h1>
-    <p>Elige un club y la semana que quieres ver.</p>
+    <h1>Vaxta Edge — Reportes</h1>
+    <p>Elige un club, el tipo de reporte y el período que quieres ver.</p>
   </div>
 
   <div class="step-label">1. Club</div>
@@ -70,15 +77,26 @@ input[type=text], select {
     <button type="button" id="cambiarClub">Cambiar</button>
   </div>
 
-  <div class="paso2" id="paso2">
-    <div class="step-label" style="margin-top:22px">2. Semana</div>
+  <div class="paso" id="paso2">
+    <div class="step-label">2. Tipo de reporte</div>
+    <div class="tipo-row">
+      <button type="button" class="tipo-btn activo" id="tipoSemanal">Semanal</button>
+      <button type="button" class="tipo-btn" id="tipoMensual">Mensual</button>
+    </div>
+  </div>
+
+  <div class="paso" id="paso3">
+    <div class="step-label" style="margin-top:22px" id="paso3Label">3. Semana</div>
     <select id="semanaSel"></select>
+    <select id="mesSel" style="display:none"></select>
     <button class="btn-ver" id="btnVer" disabled>Ver reporte</button>
   </div>
 </div>
 <script>
 let clubes = [];
 let clubSeleccionado = null;
+let tipo = 'semanal';
+const MESES = ['', 'enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 
 async function cargarClubes() {
   const res = await fetch('/api/clubes');
@@ -91,6 +109,13 @@ async function cargarSemanas() {
   const semanas = (await res.json()).slice().reverse(); // más reciente primero
   const sel = document.getElementById('semanaSel');
   sel.innerHTML = semanas.map((s, i) => `<option value="${s}">${etiquetaSemana(s)}${i === 0 ? ' (más reciente)' : ''}</option>`).join('');
+
+  const meses = [...new Set(semanas.map(s => s.slice(0, 7)))]; // YYYY-MM únicos, ya en orden desc
+  const mesSel = document.getElementById('mesSel');
+  mesSel.innerHTML = meses.map((m, i) => {
+    const [y, mm] = m.split('-');
+    return `<option value="${m}">${MESES[parseInt(mm, 10)]} ${y}${i === 0 ? ' (más reciente)' : ''}</option>`;
+  }).join('');
 }
 
 function etiquetaSemana(iso) {
@@ -125,6 +150,7 @@ function elegirClub(id, nombre) {
   document.getElementById('clubElegidoNombre').textContent = nombre;
   document.getElementById('clubElegido').classList.add('mostrar');
   document.getElementById('paso2').classList.add('activo');
+  document.getElementById('paso3').classList.add('activo');
   document.getElementById('btnVer').disabled = false;
 }
 
@@ -132,6 +158,7 @@ document.getElementById('cambiarClub').addEventListener('click', () => {
   clubSeleccionado = null;
   document.getElementById('clubElegido').classList.remove('mostrar');
   document.getElementById('paso2').classList.remove('activo');
+  document.getElementById('paso3').classList.remove('activo');
   document.getElementById('btnVer').disabled = true;
   render(clubes.slice(0, 30));
 });
@@ -142,10 +169,26 @@ document.getElementById('buscar').addEventListener('input', (e) => {
   render(clubes.filter(c => c.nombre.toLowerCase().includes(q)).slice(0, 30));
 });
 
+function elegirTipo(nuevoTipo) {
+  tipo = nuevoTipo;
+  document.getElementById('tipoSemanal').classList.toggle('activo', tipo === 'semanal');
+  document.getElementById('tipoMensual').classList.toggle('activo', tipo === 'mensual');
+  document.getElementById('semanaSel').style.display = tipo === 'semanal' ? '' : 'none';
+  document.getElementById('mesSel').style.display = tipo === 'mensual' ? '' : 'none';
+  document.getElementById('paso3Label').textContent = tipo === 'semanal' ? '3. Semana' : '3. Mes';
+}
+document.getElementById('tipoSemanal').addEventListener('click', () => elegirTipo('semanal'));
+document.getElementById('tipoMensual').addEventListener('click', () => elegirTipo('mensual'));
+
 document.getElementById('btnVer').addEventListener('click', () => {
   if (!clubSeleccionado) return;
-  const semana = document.getElementById('semanaSel').value;
-  location.href = `/reporte/semanal/${clubSeleccionado}?semana=${semana}`;
+  if (tipo === 'semanal') {
+    const semana = document.getElementById('semanaSel').value;
+    location.href = `/reporte/semanal/${clubSeleccionado}?semana=${semana}`;
+  } else {
+    const mes = document.getElementById('mesSel').value;
+    location.href = `/reporte/mensual/${clubSeleccionado}?mes=${mes}`;
+  }
 });
 
 cargarClubes();
