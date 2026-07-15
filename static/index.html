@@ -4,40 +4,59 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Vaxta Edge — Dashboard competitivo</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 :root {
-  --surface-1: #fcfcfb; --page:#f9f9f7; --text-primary:#0b0b0b; --text-secondary:#52514e;
-  --text-muted:#898781; --gridline:#e1e0d9; --gridline-strong:#cfceC6; --baseline:#c3c2b7;
-  --border: rgba(11,11,11,0.10);
-  --series-1: #2a78d6; --series-focus:#e34948;
-  --good-wash:#e6f6e6; --series-1-wash:#e8f0fb; --warn-wash:#fdf3e0; --crit-wash:#fbe4e2;
-  --good-ink:#006300; --blue-ink:#184f95; --warn-ink:#8a5a00; --crit-ink:#9c2b2b;
+  --navy: #1E2D4A; --teal: #1A8A8A; --teal-light: #22a8a8; --sand: #E8E6E1;
+  --surface-1: #ffffff; --page:#F5F3EE; --text-primary:#2D2D2D; --text-secondary:#5c5954;
+  --text-muted:#7a7670; --gridline:#e5e2da; --gridline-strong:#d4d0c8; --baseline:#c7c3b8;
+  --border: #d4d0c8;
+  --series-1: #1A8A8A; --series-focus:#C0392B; --heading-ink: var(--navy);
+  --good-wash:#e3f2ea; --series-1-wash:#EAF5F5; --warn-wash:#FEF3E2; --crit-wash:#fbe1de;
+  --good-ink:#1A7A4A; --blue-ink:#1E2D4A; --warn-ink:#D4820A; --crit-ink:#C0392B;
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --surface-1:#1a1a19; --page:#0d0d0d; --text-primary:#fff; --text-secondary:#c3c2b7;
-    --text-muted:#898781; --gridline:#2c2c2a; --gridline-strong:#3a3a37; --baseline:#383835;
-    --border: rgba(255,255,255,0.10);
-    --series-1:#3987e5; --series-focus:#e66767;
-    --good-wash:#10240f; --series-1-wash:#17263a; --warn-wash:#2a2318; --crit-wash:#301c1c;
-    --good-ink:#0ca30c; --blue-ink:#86b6ef; --warn-ink:#dba53a; --crit-ink:#e66767;
+    --navy:#141f36; --teal:#22a8a8; --teal-light:#3cc4c4; --sand:#2a2a26;
+    --surface-1:#182238; --page:#0c1220; --text-primary:#f2f1ec; --text-secondary:#b8b5ac;
+    --text-muted:#8b887f; --gridline:#26314a; --gridline-strong:#33405c; --baseline:#3a4560;
+    --border: #2a3550;
+    --series-1:#2fb8b8; --series-focus:#e2685c; --heading-ink: var(--text-primary);
+    --good-wash:#12271d; --series-1-wash:#152738; --warn-wash:#2c2415; --crit-wash:#301c1a;
+    --good-ink:#3fc37e; --blue-ink:#8fa3d6; --warn-ink:#e0a53f; --crit-ink:#e2685c;
   }
 }
 * { box-sizing: border-box; }
 body {
-  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-family: 'DM Sans', system-ui, -apple-system, "Segoe UI", sans-serif;
   color: var(--text-primary); background: var(--page); margin: 0;
-  padding: 24px 20px 40px;
+  padding: 0 0 40px; line-height: 1.5;
 }
-.wrap { max-width: 760px; margin: 0 auto; }
-.hdr h1 { font-size: 19px; margin: 0 0 4px; }
-.hdr p { font-size: 12.5px; color: var(--text-secondary); margin: 0 0 18px; }
+.wrap { max-width: 760px; margin: 0 auto; padding: 0 20px; }
+.hdr { background: var(--navy); margin: 0 0 22px; padding: 26px 20px 22px;
+  border-bottom: 3px solid var(--teal); }
+.hdr-inner { max-width: 760px; margin: 0 auto; display: flex; align-items: center; gap: 16px; }
+.hdr-logo { height: 34px; width: auto; flex-shrink: 0; }
+.hdr-text { flex: 1; min-width: 0; }
+.hdr .eyebrow { font-size: 11px; letter-spacing: 2.5px; text-transform: uppercase;
+  color: var(--teal-light); margin: 0 0 6px; }
+.hdr h1 { font-family: 'Cormorant Garamond', serif; font-size: 26px; font-weight: 700;
+  color: #fff; margin: 0 0 6px; line-height: 1.15; }
+.hdr p { font-size: 12.5px; color: rgba(255,255,255,0.55); margin: 0; }
 
-.selector-row { display:flex; gap:10px; margin-bottom: 18px; flex-wrap: wrap; align-items: flex-start; }
+.print-bar { display:none; justify-content:flex-end; margin: 0 0 18px; }
+.btn-pdf {
+  background: var(--teal); color:#fff; border:none; border-radius:4px;
+  padding:10px 20px; font-family:inherit; font-size:13px; font-weight:600;
+  letter-spacing:0.3px; cursor:pointer;
+}
+.btn-pdf:hover { background: var(--teal-light); }
+
+.selector-row { display:flex; gap:10px; margin: 20px 0 18px; flex-wrap: wrap; align-items: flex-start; }
 .search-box { position: relative; flex: 1; min-width: 260px; }
 input[type=text], select {
   width: 100%; font-family: inherit; font-size: 14px; padding: 10px 12px;
-  border-radius: 8px; border: 1px solid var(--border);
+  border-radius: 4px; border: 1px solid var(--border);
   background: var(--surface-1); color: var(--text-primary);
 }
 select { min-width: 190px; }
@@ -52,15 +71,19 @@ select { min-width: 190px; }
 .dropdown .opt:hover, .dropdown .opt.active { background: var(--series-1-wash); }
 .dropdown .opt .mk { font-size: 11px; color: var(--text-muted); }
 
-.card { background: var(--surface-1); border:1px solid var(--border); border-radius:12px; padding:18px 18px 14px; margin-bottom: 16px; }
-.card h2 { font-size: 14px; margin: 0 0 2px; }
-.card .sub { font-size: 11.5px; color: var(--text-muted); margin: 0 0 10px; }
+.card { background: var(--surface-1); border:1px solid var(--border); border-radius:4px; padding:18px 18px 14px; margin-bottom: 16px; position: relative; overflow: hidden; }
+.card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background: var(--teal); }
+.card h2 { font-family: 'Cormorant Garamond', serif; font-size: 19px; font-weight: 700; color: var(--heading-ink); margin: 0 0 2px; }
+.card .sub { font-size: 11px; letter-spacing: 0.2px; color: var(--text-muted); margin: 0 0 10px; }
 
 .stats { display:grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
-.stat-tile { background: var(--surface-1); border:1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
-.stat-tile .k { font-size: 11.5px; color: var(--text-muted); margin-bottom: 6px; }
-.stat-tile .v { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
-.stat-tile .delta { font-size: 11px; margin-top: 4px; font-variant-numeric: tabular-nums; }
+.stat-tile { background: var(--surface-1); border:1px solid var(--border); border-radius: 4px; padding: 14px 16px; position: relative; overflow: hidden; }
+.stat-tile::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background: var(--teal); }
+.stat-tile.up::before { background: var(--good-ink); }
+.stat-tile.down::before { background: var(--crit-ink); }
+.stat-tile .k { font-size: 11px; letter-spacing: 0.6px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px; }
+.stat-tile .v { font-family: 'Cormorant Garamond', serif; font-size: 28px; font-weight: 700; color: var(--heading-ink); font-variant-numeric: tabular-nums; }
+.stat-tile .delta { font-size: 11px; margin-top: 6px; font-variant-numeric: tabular-nums; }
 .delta .up { color: var(--good-ink); font-weight: 600; } .delta .down { color: var(--crit-ink); font-weight: 600; } .delta .flat { color: var(--text-muted); }
 
 .grid2 { display:grid; grid-template-columns: 1fr 1fr; gap: 14px; }
@@ -107,21 +130,49 @@ svg { width: 100%; height: auto; overflow: visible; }
 .chart-tooltip .tt-dot { width: 9px; height: 9px; border-radius: 2px; flex-shrink:0; }
 .chart-tooltip .tt-val { font-variant-numeric: tabular-nums; color: var(--text-secondary); }
 .loading { font-size: 13px; color: var(--text-muted); padding: 30px 0; text-align: center; }
+
+@media print {
+  /* el PDF siempre sale en paleta clara, sin importar el modo del sistema,
+     y fuerza a imprimir los fondos de color (header navy, acentos teal) */
+  :root {
+    --navy: #1E2D4A; --teal: #1A8A8A; --teal-light: #22a8a8; --sand: #E8E6E1;
+    --surface-1: #ffffff; --page:#F5F3EE; --text-primary:#2D2D2D; --text-secondary:#5c5954;
+    --text-muted:#7a7670; --gridline:#e5e2da; --gridline-strong:#d4d0c8; --baseline:#c7c3b8;
+    --border: #d4d0c8;
+    --series-1: #1A8A8A; --series-focus:#C0392B; --heading-ink: var(--navy);
+    --good-wash:#e3f2ea; --series-1-wash:#EAF5F5; --warn-wash:#FEF3E2; --crit-wash:#fbe1de;
+    --good-ink:#1A7A4A; --blue-ink:#1E2D4A; --warn-ink:#D4820A; --crit-ink:#C0392B;
+  }
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  body { background: #fff; }
+  .selector-row, .print-bar, .dropdown, .chart-tooltip { display: none !important; }
+  /* una tarjeta = una unidad, para que ningún gráfico quede cortado entre páginas */
+  .card, .stat-tile, .stats, .grid2 { break-inside: avoid; page-break-inside: avoid; }
+}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="hdr">
-    <h1>Vaxta Edge — Dashboard competitivo</h1>
-    <p>Etapa 2: cualquier club, cualquier semana, contra sus vecinos reales dentro de 10km.</p>
+<div class="hdr">
+  <div class="hdr-inner">
+    <img class="hdr-logo" src="/logo_vaxta_edge.png" alt="Vaxta Edge" onerror="this.style.display='none'">
+    <div class="hdr-text">
+      <p class="eyebrow">Vaxta Edge · Inteligencia de Pádel</p>
+      <h1>Dashboard competitivo</h1>
+      <p>Información semanal de club seleccionado y competidores dentro de un radio de 10kms</p>
+    </div>
   </div>
-
+</div>
+<div class="wrap">
   <div class="selector-row">
     <div class="search-box">
       <input type="text" id="buscador" placeholder="Busca un club por nombre…" autocomplete="off">
       <div class="dropdown" id="dropdown"></div>
     </div>
     <select id="semanaSel"></select>
+  </div>
+
+  <div class="print-bar" id="printBar">
+    <button class="btn-pdf" id="btnPdf" onclick="window.print()">Generar PDF</button>
   </div>
 
   <div id="resultado">
@@ -187,6 +238,7 @@ semanaSel.addEventListener('change', () => {
 
 async function cargarComparacion(id) {
   clubSeleccionado = id;
+  document.getElementById('printBar').style.display = 'none';
   document.getElementById('resultado').innerHTML = '<div class="loading">Cargando datos reales de Supabase…</div>';
   const semana = semanaSel.value;
   const res = await fetch(`/api/comparacion/${id}?semana=${semana}`);
@@ -206,10 +258,12 @@ function mediana(arr) {
 function renderResultado(data) {
   const cont = document.getElementById('resultado');
   if (data.error) { cont.innerHTML = `<div class="empty">${data.error}</div>`; return; }
+  document.getElementById('printBar').style.display = 'flex';
 
   const cuad = data.cuadrante;
   const hayCuadrante = cuad.club && cuad.vecinos.length > 0;
   const hayHoras = Object.keys(data.precio_hora).length > 0;
+  const hayOcupHoraComparativa = Object.keys(data.ocupacion_hora).length > 0;
   const hayIngresoSemana = Object.keys(data.ingreso_semana).length > 0;
   const hayTendencia = data.tendencia_rows.length > 0;
   const hayResumen = !!data.resumen_actual;
@@ -259,14 +313,19 @@ function renderResultado(data) {
       ${hayHorasOcup ? '<div class="hourschart" id="chartHoras2"></div>' : '<div class="empty">Sin datos.</div>'}
     </div>` : ''}
     <div class="card">
-      <h2>Ocupación vs. precio — mapa competitivo</h2>
-      <p class="sub">Tamaño de burbuja = canchas · línea = rango de precio (mín–máx) · club seleccionado en rojo</p>
-      ${hayCuadrante ? '<svg id="svgCuadrante" viewBox="0 0 690 390"></svg><p class="note" id="notaExcluidos"></p>' : '<div class="empty">Sin datos de precio para este club o sus vecinos, esta semana.</div>'}
+      <h2>Ocupación por hora del día — comparativo</h2>
+      <p class="sub">Club seleccionado en rojo, cada competidor con su propio color</p>
+      ${hayOcupHoraComparativa ? '<svg id="svgHorasOcup" viewBox="0 0 630 340"></svg><div class="legend" id="leyendaHorasOcup"></div>' : '<div class="empty">Sin datos de ocupación por hora esta semana.</div>'}
     </div>
     <div class="card">
       <h2>Precio promedio por hora del día</h2>
-      <p class="sub">Club seleccionado en rojo, cada vecino con su propio color</p>
+      <p class="sub">Club seleccionado en rojo, cada competidor con su propio color</p>
       ${hayHoras ? '<svg id="svgHoras" viewBox="0 0 630 340"></svg><div class="legend" id="leyendaHoras"></div>' : '<div class="empty">Sin datos de precio por hora esta semana.</div>'}
+    </div>
+    <div class="card">
+      <h2>Ocupación vs. precio — mapa competitivo</h2>
+      <p class="sub">Tamaño de burbuja = canchas · línea = rango de precio (mín–máx) · club seleccionado en rojo</p>
+      ${hayCuadrante ? '<svg id="svgCuadrante" viewBox="0 0 690 390"></svg><p class="note" id="notaExcluidos"></p>' : '<div class="empty">Sin datos de precio para este club o sus vecinos, esta semana.</div>'}
     </div>
     <div class="card">
       <h2>Ingreso esta semana</h2>
@@ -289,6 +348,7 @@ function renderResultado(data) {
   if (hayDias) dibujarDiario(data);
   if (hayHorasOcup) dibujarHorasOcupacion(data);
   if (hayCuadrante) dibujarCuadrante(data);
+  if (hayOcupHoraComparativa) dibujarHorasOcupacionComparativa(data);
   if (hayHoras) dibujarHoras(data);
   if (hayIngresoSemana) dibujarIngresoSemana(data);
   if (hayTendencia) dibujarTendencia(data);
@@ -307,6 +367,15 @@ function deltaHTML(curr, prev, isPct) {
   return `<span class="${cls}">${arrow} ${label}</span> vs. semana anterior`;
 }
 
+function marcarTile(elId, curr, prev) {
+  const tile = document.getElementById(elId).closest('.stat-tile');
+  tile.classList.remove('up', 'down');
+  if (prev == null || curr == null) return;
+  const diff = curr - prev;
+  if (Math.abs(prev !== 0 ? (diff / Math.abs(prev)) * 100 : 0) < 0.5) return;
+  tile.classList.add(diff > 0 ? 'up' : 'down');
+}
+
 function dibujarResumen(data) {
   const s = data.resumen_actual;
   const prev = data.resumen_anterior;
@@ -314,12 +383,15 @@ function dibujarResumen(data) {
   document.getElementById('deltaIngreso').innerHTML = prev
     ? deltaHTML(Number(s.ingreso_estimado_mxn), Number(prev.ingreso_estimado_mxn), false)
     : '<span class="flat">— sin semana anterior</span>';
+  marcarTile('statIngreso', Number(s.ingreso_estimado_mxn), prev ? Number(prev.ingreso_estimado_mxn) : null);
   document.getElementById('statPorCancha').textContent = fmtMXN(Number(s.ingreso_por_cancha_mxn));
   document.getElementById('deltaPorCancha').innerHTML = prev
     ? deltaHTML(Number(s.ingreso_por_cancha_mxn), Number(prev.ingreso_por_cancha_mxn), false) : '';
+  marcarTile('statPorCancha', Number(s.ingreso_por_cancha_mxn), prev ? Number(prev.ingreso_por_cancha_mxn) : null);
   document.getElementById('statOcupacion').textContent = fmtPct(Number(s.ocupacion_prom_pct));
   document.getElementById('deltaOcupacion').innerHTML = prev
     ? deltaHTML(Number(s.ocupacion_prom_pct), Number(prev.ocupacion_prom_pct), true) : '';
+  marcarTile('statOcupacion', Number(s.ocupacion_prom_pct), prev ? Number(prev.ocupacion_prom_pct) : null);
 }
 
 const DIAS_LABEL = {1:'Lun', 2:'Mar', 3:'Mié', 4:'Jue', 5:'Vie', 6:'Sáb', 7:'Dom'};
@@ -436,23 +508,22 @@ function colorLineaPorIndice(i) {
 
 const GRIS_APAGADO = 'var(--gridline-strong)';
 
-function dibujarHoras(data) {
-  const porClub = data.precio_hora;
-  const clubId = data.club.id;
+// Dibuja una gráfica de líneas por hora del día (club vs. competidores), con
+// hover que resalta la línea más cercana al cursor. Reutilizada por precio
+// por hora y ocupación por hora — misma lógica de interacción, distinto eje.
+function dibujarLineasPorHora(porClub, clubId, nombres, opts) {
+  const { svgId, legendId, valueKey, yMin, yMax, yStep, axisFmt, tooltipFmt } = opts;
   const horas = [...new Set(Object.values(porClub).flat().map(p => p.hora))].sort();
-  const todosPrecios = Object.values(porClub).flat().map(p => p.precio);
-  const yMin = Math.min(...todosPrecios) - 40, yMax = Math.max(...todosPrecios) + 60;
   const PX0 = 60, PX1 = 600, PY0 = 20, PY1 = 300;
   const n = horas.length;
   const sx = i => PX0 + i/(n-1) * (PX1-PX0);
   const sy = v => PY1 - (v - yMin)/(yMax-yMin) * (PY1-PY0);
 
   let svg = `<line x1="${PX0}" y1="${PY1}" x2="${PX1}" y2="${PY1}" stroke="var(--baseline)"/>`;
-  const yStep = Math.round((yMax - yMin) / 4 / 50) * 50 || 50;
   for (let yv = Math.ceil(yMin/yStep)*yStep; yv <= yMax; yv += yStep) {
     const yy = sy(yv);
     svg += `<line x1="${PX0}" y1="${yy}" x2="${PX1}" y2="${yy}" stroke="var(--gridline)"/>`;
-    svg += `<text x="${PX0-8}" y="${yy+4}" text-anchor="end" class="axis-lbl">$${yv}</text>`;
+    svg += `<text x="${PX0-8}" y="${yy+4}" text-anchor="end" class="axis-lbl">${axisFmt(yv)}</text>`;
   }
   horas.forEach((h, i) => {
     if (i % 2 === 0) svg += `<text x="${sx(i)}" y="${PY1+16}" text-anchor="middle" class="axis-lbl">${h}</text>`;
@@ -466,7 +537,7 @@ function dibujarHoras(data) {
   if (porClub[clubId]) coloresPorId[clubId] = 'var(--series-focus)';
 
   const orden = [...otros, ...(porClub[clubId] ? [clubId] : [])];
-  const puntosPorId = {}; // id -> [{x, y, hora, precio}, ...] ordenado por hora, para el hover
+  const puntosPorId = {}; // id -> [{x, y, hora, val}, ...] ordenado por hora, para el hover
   let focusEnd = null;
   const leyenda = [];
   for (const id of orden) {
@@ -474,15 +545,15 @@ function dibujarHoras(data) {
     const isSel = id === clubId;
     const ordered = [...pts].sort((a,b) => horas.indexOf(a.hora) - horas.indexOf(b.hora));
     puntosPorId[id] = ordered.map(p => ({
-      x: sx(horas.indexOf(p.hora)), y: sy(p.precio), hora: p.hora, precio: p.precio
+      x: sx(horas.indexOf(p.hora)), y: sy(p[valueKey]), hora: p.hora, val: p[valueKey]
     }));
     const path = puntosPorId[id].map((p,i) => `${i===0?'M':'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
     const stroke = coloresPorId[id];
-    svg += `<path id="linea-${id}" data-id="${id}" d="${path}" fill="none" stroke="${stroke}" stroke-width="${isSel?3:1.6}" opacity="${isSel?1:0.85}"/>`;
-    leyenda.push({ id, nombre: data.nombres[id], color: stroke, isSel });
+    svg += `<path id="linea-${svgId}-${id}" data-id="${id}" d="${path}" fill="none" stroke="${stroke}" stroke-width="${isSel?3:1.6}" opacity="${isSel?1:0.85}"/>`;
+    leyenda.push({ id, nombre: nombres[id], color: stroke, isSel });
     if (isSel && ordered.length) {
       const last = ordered[ordered.length-1];
-      focusEnd = [sx(horas.indexOf(last.hora)), sy(last.precio)];
+      focusEnd = [sx(horas.indexOf(last.hora)), sy(last[valueKey])];
     }
   }
   if (focusEnd) {
@@ -497,7 +568,7 @@ function dibujarHoras(data) {
     svg += `<rect class="hover-col" x="${xIni.toFixed(1)}" y="${PY0}" width="${(xFin-xIni).toFixed(1)}" height="${PY1-PY0}" data-hora="${i}"/>`;
   }
 
-  const svgEl = document.getElementById('svgHoras');
+  const svgEl = document.getElementById(svgId);
   svgEl.innerHTML = svg;
 
   const tooltip = document.getElementById('chartTooltip');
@@ -508,7 +579,7 @@ function dibujarHoras(data) {
   }
   function resaltar(idResaltado) {
     orden.forEach(id => {
-      const el = document.getElementById(`linea-${id}`);
+      const el = document.getElementById(`linea-${svgId}-${id}`);
       if (!el) return;
       if (idResaltado === null) {
         el.setAttribute('stroke', coloresPorId[id]);
@@ -540,8 +611,8 @@ function dibujarHoras(data) {
       resaltar(mejorId);
       const p = puntosPorId[mejorId][horaIdx];
       tooltip.innerHTML = `
-        <div class="tt-club"><span class="tt-dot" style="background:${coloresPorId[mejorId]}"></span>${data.nombres[mejorId]}</div>
-        <div class="tt-val">${p.hora}: $${Math.round(p.precio)}/hr</div>
+        <div class="tt-club"><span class="tt-dot" style="background:${coloresPorId[mejorId]}"></span>${nombres[mejorId]}</div>
+        <div class="tt-val">${p.hora}: ${tooltipFmt(p.val)}</div>
       `;
       tooltip.style.display = 'block';
       tooltip.style.left = (evt.clientX + 14) + 'px';
@@ -553,13 +624,35 @@ function dibujarHoras(data) {
     tooltip.style.display = 'none';
   });
 
-  const leg = document.getElementById('leyendaHoras');
+  const leg = document.getElementById(legendId);
   if (leg) {
     leyenda.sort((a,b) => (b.isSel?1:0) - (a.isSel?1:0));
     leg.innerHTML = leyenda.map(l =>
       `<div class="item${l.isSel?' focus':''}"><span class="dot" style="background:${l.color}"></span>${l.nombre}</div>`
     ).join('');
   }
+}
+
+function dibujarHoras(data) {
+  const porClub = data.precio_hora;
+  const todosPrecios = Object.values(porClub).flat().map(p => p.precio);
+  const yMin = Math.min(...todosPrecios) - 40, yMax = Math.max(...todosPrecios) + 60;
+  const yStep = Math.round((yMax - yMin) / 4 / 50) * 50 || 50;
+  dibujarLineasPorHora(porClub, data.club.id, data.nombres, {
+    svgId: 'svgHoras', legendId: 'leyendaHoras', valueKey: 'precio',
+    yMin, yMax, yStep,
+    axisFmt: v => '$' + v,
+    tooltipFmt: v => '$' + Math.round(v) + '/hr',
+  });
+}
+
+function dibujarHorasOcupacionComparativa(data) {
+  dibujarLineasPorHora(data.ocupacion_hora, data.club.id, data.nombres, {
+    svgId: 'svgHorasOcup', legendId: 'leyendaHorasOcup', valueKey: 'ocupacion',
+    yMin: 0, yMax: 100, yStep: 20,
+    axisFmt: v => v + '%',
+    tooltipFmt: v => Math.round(v) + '%',
+  });
 }
 
 // ============ 3) INGRESO ESTA SEMANA + POR CANCHA ============

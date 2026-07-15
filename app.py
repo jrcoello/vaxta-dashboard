@@ -184,6 +184,25 @@ def api_comparacion(club_id):
                 {"hora": str(r["hora_inicio"])[:5], "precio": float(r["precio"])}
             )
 
+        # ---- 2b) Ocupación por hora, misma semana (comparativo, todo el grupo) ----
+        cur.execute(
+            """
+            SELECT tenant_id AS id, hora_inicio, ROUND(AVG(ocupacion_pct)::numeric, 1) AS ocupacion
+            FROM snapshots_ingreso
+            WHERE tenant_id = ANY(%s)
+              AND fecha >= %s AND fecha < %s::date + INTERVAL '7 days'
+            GROUP BY tenant_id, hora_inicio
+            ORDER BY tenant_id, hora_inicio
+            """,
+            (ids_grupo, semana, semana),
+        )
+        ocupacion_hora_rows = cur.fetchall()
+        ocupacion_hora = {}
+        for r in ocupacion_hora_rows:
+            ocupacion_hora.setdefault(r["id"], []).append(
+                {"hora": str(r["hora_inicio"])[:5], "ocupacion": float(r["ocupacion"])}
+            )
+
         # ---- 3) Ingreso esta semana + por cancha ----
         cur.execute(
             """
@@ -280,6 +299,7 @@ def api_comparacion(club_id):
                     "sin_precio": ([club["nombre"]] if club_cuad is None else []) + sin_precio,
                 },
                 "precio_hora": precio_hora,
+                "ocupacion_hora": ocupacion_hora,
                 "ingreso_semana": ingreso_semana,
                 "tendencia_rows": tendencia_rows,
                 "resumen_actual": resumen_actual,
