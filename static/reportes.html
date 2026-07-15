@@ -20,15 +20,16 @@ body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color: var
 .wrap { max-width: 640px; margin: 0 auto; }
 .hdr h1 { font-size: 19px; margin: 0 0 4px; }
 .hdr p { font-size: 12.5px; color: var(--text-secondary); margin: 0 0 18px; }
-.search-box { position: relative; margin-bottom: 18px; }
-input[type=text] {
+.step-label { font-size: 11.5px; font-weight: 600; letter-spacing: .02em; color: var(--text-muted); text-transform: uppercase; margin: 0 0 6px; }
+.search-box { position: relative; margin-bottom: 8px; }
+input[type=text], select {
   width: 100%; font-family: inherit; font-size: 14px; padding: 10px 12px;
   border-radius: 8px; border: 1px solid var(--border);
   background: var(--surface-1); color: var(--text-primary);
 }
 .dropdown {
   margin-top: 8px; background: var(--surface-1); border: 1px solid var(--border); border-radius: 8px;
-  max-height: 420px; overflow-y: auto;
+  max-height: 340px; overflow-y: auto;
 }
 .dropdown .opt { padding: 10px 12px; font-size: 13.5px; cursor: pointer; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; gap: 10px; }
 .dropdown .opt:last-child { border-bottom: none; }
@@ -36,26 +37,68 @@ input[type=text] {
 .dropdown .nombre { font-weight: 600; }
 .dropdown .mk { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
 .empty { font-size: 13px; color: var(--text-muted); padding: 20px 0; text-align: center; }
+
+.club-elegido { display: none; align-items: center; justify-content: space-between; gap: 10px; background: var(--series-1-wash); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin-top: 8px; }
+.club-elegido.mostrar { display: flex; }
+.club-elegido .nombre { font-weight: 600; font-size: 13.5px; }
+.club-elegido button { background: none; border: none; color: var(--series-1); font-size: 12.5px; cursor: pointer; padding: 4px 6px; }
+
+.paso2 { margin-top: 22px; opacity: .4; pointer-events: none; transition: opacity .15s; }
+.paso2.activo { opacity: 1; pointer-events: auto; }
+
+.btn-ver {
+  width: 100%; margin-top: 18px; padding: 12px; border-radius: 8px; border: none;
+  background: var(--series-1); color: #fff; font-size: 14px; font-weight: 600; cursor: pointer;
+}
+.btn-ver:disabled { opacity: .4; cursor: not-allowed; }
 </style>
 </head>
 <body>
 <div class="wrap">
   <div class="hdr">
     <h1>Vaxta Edge — Reportes semanales</h1>
-    <p>Busca un club y abre su reporte de la semana más reciente.</p>
+    <p>Elige un club y la semana que quieres ver.</p>
   </div>
+
+  <div class="step-label">1. Club</div>
   <div class="search-box">
     <input type="text" id="buscar" placeholder="Escribe el nombre del club…" autocomplete="off">
   </div>
   <div class="dropdown" id="lista"></div>
+  <div class="club-elegido" id="clubElegido">
+    <span class="nombre" id="clubElegidoNombre"></span>
+    <button type="button" id="cambiarClub">Cambiar</button>
+  </div>
+
+  <div class="paso2" id="paso2">
+    <div class="step-label" style="margin-top:22px">2. Semana</div>
+    <select id="semanaSel"></select>
+    <button class="btn-ver" id="btnVer" disabled>Ver reporte</button>
+  </div>
 </div>
 <script>
 let clubes = [];
+let clubSeleccionado = null;
 
 async function cargarClubes() {
   const res = await fetch('/api/clubes');
   clubes = await res.json();
   render(clubes.slice(0, 30));
+}
+
+async function cargarSemanas() {
+  const res = await fetch('/api/semanas');
+  const semanas = (await res.json()).slice().reverse(); // más reciente primero
+  const sel = document.getElementById('semanaSel');
+  sel.innerHTML = semanas.map((s, i) => `<option value="${s}">${etiquetaSemana(s)}${i === 0 ? ' (más reciente)' : ''}</option>`).join('');
+}
+
+function etiquetaSemana(iso) {
+  const inicio = new Date(iso + 'T00:00:00');
+  const fin = new Date(inicio);
+  fin.setDate(fin.getDate() + 6);
+  const fmt = (d) => d.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' });
+  return `${fmt(inicio)} – ${fmt(fin)}`;
 }
 
 function render(items) {
@@ -65,12 +108,33 @@ function render(items) {
     return;
   }
   lista.innerHTML = items.map(c =>
-    `<div class="opt" onclick="location.href='/reporte/semanal/${c.id}'">
+    `<div class="opt" data-id="${c.id}" data-nombre="${c.nombre.replace(/"/g, '&quot;')}">
        <span class="nombre">${c.nombre}</span>
        <span class="mk">${c.mercado || ''} · ${c.canchas || '?'} canchas</span>
      </div>`
   ).join('');
+  lista.querySelectorAll('.opt').forEach(el => {
+    el.addEventListener('click', () => elegirClub(el.dataset.id, el.dataset.nombre));
+  });
 }
+
+function elegirClub(id, nombre) {
+  clubSeleccionado = id;
+  document.getElementById('buscar').value = '';
+  document.getElementById('lista').innerHTML = '';
+  document.getElementById('clubElegidoNombre').textContent = nombre;
+  document.getElementById('clubElegido').classList.add('mostrar');
+  document.getElementById('paso2').classList.add('activo');
+  document.getElementById('btnVer').disabled = false;
+}
+
+document.getElementById('cambiarClub').addEventListener('click', () => {
+  clubSeleccionado = null;
+  document.getElementById('clubElegido').classList.remove('mostrar');
+  document.getElementById('paso2').classList.remove('activo');
+  document.getElementById('btnVer').disabled = true;
+  render(clubes.slice(0, 30));
+});
 
 document.getElementById('buscar').addEventListener('input', (e) => {
   const q = e.target.value.trim().toLowerCase();
@@ -78,7 +142,14 @@ document.getElementById('buscar').addEventListener('input', (e) => {
   render(clubes.filter(c => c.nombre.toLowerCase().includes(q)).slice(0, 30));
 });
 
+document.getElementById('btnVer').addEventListener('click', () => {
+  if (!clubSeleccionado) return;
+  const semana = document.getElementById('semanaSel').value;
+  location.href = `/reporte/semanal/${clubSeleccionado}?semana=${semana}`;
+});
+
 cargarClubes();
+cargarSemanas();
 </script>
 </body>
 </html>
