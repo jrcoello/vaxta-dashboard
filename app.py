@@ -28,6 +28,7 @@ load_dotenv(os.path.join(HERE, ".env"))
 
 from reportes_semanal import generar_html_semanal  # noqa: E402  (después de load_dotenv)
 from reportes_mensual import generar_html_mensual  # noqa: E402
+from courtmetrics import generar_html_courtmetrics  # noqa: E402
 
 app = Flask(__name__, static_folder="static", static_url_path="")
 
@@ -342,6 +343,14 @@ def reporte_mensual(club_id):
     except ValueError as e:
         return f"<p style='font-family:sans-serif;padding:40px'>{e}</p>", 404
     return Response(html, mimetype="text/html")
+
+
+@app.route("/courtmetrics")
+def courtmetrics():
+    """Página de Revés Padel con datos de Court Metrics — captura manual
+    guardada en courtmetrics_reves.json, no consulta Supabase ni ningún
+    servicio en vivo (ver courtmetrics.py)."""
+    return Response(generar_html_courtmetrics(), mimetype="text/html")
 
 
 if __name__ == "__main__":

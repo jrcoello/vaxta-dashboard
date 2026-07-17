@@ -1,0 +1,92 @@
+{
+  "fuente": "Court Metrics (courtmetrics.io) — captura manual, no es un dato en vivo",
+  "capturado_el": "2026-07-17",
+  "granularidad": "daily",
+  "ventana_dias": 30,
+  "moneda": "MXN",
+  "tipo_cambio_usado": "1 EUR = 20 MXN (fijo, aproximado — Court Metrics no ofrece MXN nativamente para este club)",
+  "periodo_actual": "17 jun – 16 jul 2026",
+  "periodo_anterior": "18 may – 16 jun 2026",
+  "club": {
+    "nombre": "Revés Padel Chapultepec",
+    "canchas": 4,
+    "direccion": "61 Calle Gobernador Ignacio Esteva, Col. San Miguel Chapultepec 1 Sección, Ciudad de México",
+    "rating_google": 4.6,
+    "resenas_google": 32
+  },
+  "kpis": {
+    "ingreso_total": {"valor": 605020, "delta": -111860, "delta_pct": -16},
+    "ingreso_por_cancha": {"valor": 151260, "delta": -27960, "delta_pct": -16},
+    "ocupacion_pct": {"valor": 49, "delta_pp": -8, "delta_pct": -13},
+    "horas_reservadas": {"valor": 828, "delta": -117, "delta_pct": -12},
+    "horas_disponibles": {"valor": 1692, "delta": 2, "delta_pct": 0}
+  },
+  "zona_benchmark": {
+    "nombre": "Miguel Hidalgo (promedio de alcaldía)",
+    "ocupacion_pct_prom_diario": 30.31,
+    "ingreso_prom_diario": 23061
+  },
+  "serie_diaria": {
+    "actual": {
+      "fechas": ["2026-06-17","2026-06-18","2026-06-19","2026-06-20","2026-06-21","2026-06-22","2026-06-23","2026-06-24","2026-06-25","2026-06-26","2026-06-27","2026-06-28","2026-06-29","2026-06-30","2026-07-01","2026-07-02","2026-07-03","2026-07-04","2026-07-05","2026-07-06","2026-07-07","2026-07-08","2026-07-09","2026-07-10","2026-07-11","2026-07-12","2026-07-13","2026-07-14","2026-07-15","2026-07-16"],
+      "ocupacion_pct": [59.85,26.52,49.19,56.25,29.69,52.27,34.09,40.15,40.91,45.16,31.25,40.63,46.97,31.82,58.33,43.18,47.58,75.0,48.44,37.12,42.42,65.15,63.64,58.87,75.0,59.38,53.03,50.0,66.67,51.52],
+      "ingreso_mxn": [27305,12687,23237,14642,7677,25654,16287,18289,18212,20294,8261,10637,22402,13855,28368,20709,21137,18315,12360,18227,20099,30225,30592,25861,19308,15077,24978,24230,30409,24517],
+      "horas_reservadas": [39.5,17.5,30.5,18,9.5,34.5,22.5,26.5,27,28,10,13,31,21,38.5,28.5,29.5,24,15.5,24.5,28,43,42,36.5,24,19,35,33,44,34]
+    },
+    "anterior": {
+      "fechas": ["2026-05-18","2026-05-19","2026-05-20","2026-05-21","2026-05-22","2026-05-23","2026-05-24","2026-05-25","2026-05-26","2026-05-27","2026-05-28","2026-05-29","2026-05-30","2026-05-31","2026-06-01","2026-06-02","2026-06-03","2026-06-04","2026-06-05","2026-06-06","2026-06-07","2026-06-08","2026-06-09","2026-06-10","2026-06-11","2026-06-12","2026-06-13","2026-06-14","2026-06-15","2026-06-16"],
+      "ocupacion_pct": [56.06,54.55,64.39,37.12,69.35,59.38,75.0,51.52,53.03,50.76,56.06,70.16,54.69,78.13,61.36,61.36,61.36,37.88,63.71,53.13,71.88,40.15,65.15,62.88,48.48,54.03,51.56,62.5,44.70,38.64],
+      "ingreso_mxn": [27336,27127,31754,19655,32964,15699,18507,25805,26612,25014,28155,33630,14407,19789,28203,30836,29368,19131,30564,14052,18260,19737,32621,28801,22088,25895,13688,15777,21134,18886],
+      "horas_reservadas": [37,36,42.5,24.5,43,19,22.5,34,35,33.5,37,43.5,17.5,25,40.5,40.5,40.5,25,39.5,17,23,26.5,43,41.5,32,33.5,16.5,20,29.5,25.5]
+    }
+  },
+  "ocupacion_por_hora": [
+    {"hora": "07:00", "pct": 71.59}, {"hora": "08:00", "pct": 68.75}, {"hora": "09:00", "pct": 57.92},
+    {"hora": "10:00", "pct": 60.42}, {"hora": "11:00", "pct": 58.33}, {"hora": "12:00", "pct": 40.42},
+    {"hora": "13:00", "pct": 25.0}, {"hora": "14:00", "pct": 21.25}, {"hora": "15:00", "pct": 32.5},
+    {"hora": "16:00", "pct": 41.48}, {"hora": "17:00", "pct": 39.20}, {"hora": "18:00", "pct": 41.48},
+    {"hora": "19:00", "pct": 50.57}, {"hora": "20:00", "pct": 53.98}, {"hora": "21:00", "pct": 47.73},
+    {"hora": "22:00", "pct": 61.36}, {"hora": "23:00", "pct": 100.0}
+  ],
+  "precio_por_hora": [
+    {"hora": "07:00", "min": 600, "max": 801, "avg": 701}, {"hora": "08:00", "min": 600, "max": 867, "avg": 734},
+    {"hora": "09:00", "min": 600, "max": 867, "avg": 734}, {"hora": "10:00", "min": 600, "max": 867, "avg": 734},
+    {"hora": "11:00", "min": 600, "max": 867, "avg": 734}, {"hora": "12:00", "min": 600, "max": 867, "avg": 734},
+    {"hora": "13:00", "min": 600, "max": 867, "avg": 734}, {"hora": "14:00", "min": 600, "max": 867, "avg": 734},
+    {"hora": "15:00", "min": 550, "max": 801, "avg": 676}, {"hora": "16:00", "min": 500, "max": 867, "avg": 684},
+    {"hora": "17:00", "min": 600, "max": 867, "avg": 734}, {"hora": "18:00", "min": 667, "max": 867, "avg": 767},
+    {"hora": "19:00", "min": 667, "max": 867, "avg": 767}, {"hora": "20:00", "min": 667, "max": 867, "avg": 767},
+    {"hora": "21:00", "min": 667, "max": 867, "avg": 767}
+  ],
+  "anticipacion_reserva": [
+    {"dias_antes": 7, "ocupacion_normalizada": 0.4504},
+    {"dias_antes": 6, "ocupacion_normalizada": 0.3651},
+    {"dias_antes": 5, "ocupacion_normalizada": 0.3874},
+    {"dias_antes": 4, "ocupacion_normalizada": 0.4157},
+    {"dias_antes": 3, "ocupacion_normalizada": 0.5753},
+    {"dias_antes": 2, "ocupacion_normalizada": 0.7710},
+    {"dias_antes": 1, "ocupacion_normalizada": 1.0013},
+    {"dias_antes": 0, "ocupacion_normalizada": 1.0}
+  ],
+  "clima": {
+    "fechas": ["2026-06-17","2026-06-18","2026-06-19","2026-06-20","2026-06-21","2026-06-22","2026-06-23","2026-06-24","2026-06-25","2026-06-26","2026-06-27","2026-06-28","2026-06-29","2026-06-30","2026-07-01","2026-07-02","2026-07-03","2026-07-04","2026-07-05","2026-07-06","2026-07-07","2026-07-08","2026-07-09","2026-07-10","2026-07-11","2026-07-12","2026-07-13","2026-07-14","2026-07-15","2026-07-16"],
+    "temp_min_c": [13.4,12.3,13.4,14.2,13.3,12.6,13,13.2,13.1,11.6,13,11.2,13.5,13.6,12.8,10.9,12.4,12.8,13,12.9,12.8,12.9,12.8,11.5,12.8,12.1,13.4,13,13.6,12.4],
+    "temp_max_c": [23.4,24.5,24.6,23.6,23.7,25.4,23,22,22.6,22.8,22.3,23.5,22.6,21.8,21,21.8,22.1,23.5,22.6,22.6,22.8,21.7,22.9,23.8,22.9,22.8,22.8,23.7,21.9,23.6],
+    "precipitacion_mm": [11.3,4.8,3.3,3.6,0.6,2.1,13,21,9.7,1.1,3.3,2.5,13.3,9.1,6.2,10.7,3.8,0.8,6.5,5.2,3.1,3.1,16.4,4.8,26.4,9.6,5.2,4,9.8,3.9]
+  },
+  "competencia": [
+    {"nombre": "Padel Co. Polanco", "distancia_km": 3.7, "canchas": 11, "ingreso_mxn": 2562100, "ingreso_cancha_mxn": 232920, "ocupacion_pct": 48.2, "precio_min": 953, "precio_max": 1103, "rating_google": 4.3, "resenas_google": 145, "es_reves": false},
+    {"nombre": "Padel Co. Reforma", "distancia_km": 1.9, "canchas": 6, "ingreso_mxn": 1536360, "ingreso_cancha_mxn": 256060, "ocupacion_pct": 50.2, "precio_min": 953, "precio_max": 1103, "rating_google": 4.9, "resenas_google": 19, "es_reves": false},
+    {"nombre": "Padel Co. San Miguel Chapultepec", "distancia_km": 0.7, "canchas": 5, "ingreso_mxn": 634540, "ingreso_cancha_mxn": 126900, "ocupacion_pct": 27.3, "precio_min": 902, "precio_max": 1003, "rating_google": 5.0, "resenas_google": 1, "es_reves": false},
+    {"nombre": "Santa Pala", "distancia_km": 2.7, "canchas": 3, "ingreso_mxn": 619080, "ingreso_cancha_mxn": 206360, "ocupacion_pct": 56.9, "precio_min": 662, "precio_max": 862, "rating_google": 4.6, "resenas_google": 54, "es_reves": false},
+    {"nombre": "Revés Padel Chapultepec", "distancia_km": 0.0, "canchas": 4, "ingreso_mxn": 605020, "ingreso_cancha_mxn": 151260, "ocupacion_pct": 49.3, "precio_min": 501, "precio_max": 869, "rating_google": 4.6, "resenas_google": 32, "es_reves": true},
+    {"nombre": "Padel Co. Revolución", "distancia_km": 1.2, "canchas": 6, "ingreso_mxn": 566840, "ingreso_cancha_mxn": 94480, "ocupacion_pct": 25.5, "precio_min": 702, "precio_max": 802, "rating_google": 4.9, "resenas_google": 19, "es_reves": false},
+    {"nombre": "Está Pádel Polanco", "distancia_km": 3.8, "canchas": 3, "ingreso_mxn": 401820, "ingreso_cancha_mxn": 133940, "ocupacion_pct": 40.7, "precio_min": 682, "precio_max": 842, "rating_google": 4.7, "resenas_google": 80, "es_reves": false},
+    {"nombre": "MyPadel Polanco", "distancia_km": 4.3, "canchas": 4, "ingreso_mxn": 247380, "ingreso_cancha_mxn": 61840, "ocupacion_pct": 19.6, "precio_min": 401, "precio_max": 802, "rating_google": 4.6, "resenas_google": 58, "es_reves": false},
+    {"nombre": "Padelhood Mx", "distancia_km": 2.2, "canchas": 4, "ingreso_mxn": 244740, "ingreso_cancha_mxn": 61180, "ocupacion_pct": 18.0, "precio_min": 301, "precio_max": 802, "rating_google": 4.5, "resenas_google": 58, "es_reves": false},
+    {"nombre": "Pádel del Valle", "distancia_km": 3.5, "canchas": 2, "ingreso_mxn": 179900, "ingreso_cancha_mxn": 89940, "ocupacion_pct": 36.2, "precio_min": 602, "precio_max": 602, "rating_google": 4.6, "resenas_google": 42, "es_reves": false},
+    {"nombre": "B Pádel", "distancia_km": 3.3, "canchas": 1, "ingreso_mxn": 66720, "ingreso_cancha_mxn": 66720, "ocupacion_pct": 22.6, "precio_min": 401, "precio_max": 602, "rating_google": 3.8, "resenas_google": 23, "es_reves": false},
+    {"nombre": "Padelito Rooftop", "distancia_km": 2.8, "canchas": 2, "ingreso_mxn": 64040, "ingreso_cancha_mxn": 32020, "ocupacion_pct": 10.2, "precio_min": 602, "precio_max": 702, "rating_google": 4.5, "resenas_google": 45, "es_reves": false},
+    {"nombre": "Club Mundet AC", "distancia_km": 3.7, "canchas": 0, "ingreso_mxn": 0, "ingreso_cancha_mxn": 0, "ocupacion_pct": null, "precio_min": null, "precio_max": null, "rating_google": null, "resenas_google": null, "es_reves": false}
+  ]
+}
