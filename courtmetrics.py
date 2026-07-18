@@ -206,6 +206,221 @@ def _svg_ranking(items, key, label_fmt, unidad="", w=680, highlight_key="es_reve
     return f'<svg viewBox="0 0 {w} {h}" style="height:{h}px">{rows}</svg>'
 
 
+def _svg_rango_precio(items, simbolo, w=680, highlight_key="es_reves"):
+    """Rango de precio (min–max) por competidor, ordenado por precio máximo, club propio resaltado."""
+    filtrados = [c for c in items if c.get("precio_max") is not None]
+    ordenado = sorted(filtrados, key=lambda c: c["precio_max"], reverse=True)
+    vmax = max(c["precio_max"] for c in ordenado) * 1.1 if ordenado else 1
+    row_h = 24
+    h = len(ordenado) * row_h + 10
+    pad_l = 190
+    plot_w = w - pad_l - 90
+
+    def x(v):
+        return pad_l + (v / vmax) * plot_w if vmax else pad_l
+
+    rows = ""
+    for i, c in enumerate(ordenado):
+        y = 6 + i * row_h
+        bx0, bx1 = x(c["precio_min"]), x(c["precio_max"])
+        color = RED if c.get(highlight_key) else TEAL
+        weight = "700" if c.get(highlight_key) else "400"
+        rows += (
+            f'<text x="{pad_l - 8}" y="{y + 14}" text-anchor="end" class="bar-lbl" '
+            f'font-weight="{weight}" fill="{color if c.get(highlight_key) else "var(--text-secondary)"}">{c["nombre"]}</text>'
+            f'<rect x="{bx0:.1f}" y="{y + 3}" width="{max(bx1-bx0,2):.1f}" height="16" rx="3" fill="{color}"/>'
+            f'<text x="{bx1 + 6:.1f}" y="{y + 14}" class="bar-val">'
+            f'{simbolo}{c["precio_min"]:.0f}–{simbolo}{c["precio_max"]:.0f}</text>'
+        )
+    return f'<svg viewBox="0 0 {w} {h}" style="height:{h}px">{rows}</svg>'
+
+
+def _svg_cuadrante(comp, cuadrante_exacto, simbolo, w=680, h=390, highlight_key="es_reves"):
+    """Ocupación vs. precio — burbuja por competidor (tamaño = canchas, en
+    la posición exacta de precio promedio/ocupación que calcula la fuente),
+    línea = rango min–max de precio, 4 cuadrantes (líderes/retadores/en
+    dificultad/sobreprecio) partidos en la mediana exacta de precio y
+    ocupación. Hover nativo (SVG <title>) muestra los datos del club."""
+    rango_por_nombre = {c["nombre"]: c for c in comp}
+    filtrados = []
+    for p in cuadrante_exacto["puntos"]:
+        rango = rango_por_nombre.get(p["nombre"], {})
+        filtrados.append({
+            "nombre": p["nombre"], "ocupacion_pct": p["ocupacion_pct"], "canchas": p["canchas"],
+            "es_reves": p["es_reves"], "_precio_prom": p["precio_avg_mxn"],
+            "precio_min": rango.get("precio_min", p["precio_avg_mxn"]),
+            "precio_max": rango.get("precio_max", p["precio_avg_mxn"]),
+        })
+
+    canchas = [c["canchas"] or 1 for c in filtrados]
+    med_precio = cuadrante_exacto["mediana_precio_mxn"]
+    med_ocup = cuadrante_exacto["mediana_ocupacion_pct"]
+
+    PX0, PX1, PY0, PY1 = 80, w - 20, 26, h - 30
+    x_min, x_max = min(c["precio_min"] for c in filtrados) - 40, max(c["precio_max"] for c in filtrados) + 40
+
+    def sx(p):
+        return PX0 + (p - x_min) / (x_max - x_min) * (PX1 - PX0)
+
+    def sy(o):
+        return PY1 - o / 100 * (PY1 - PY0)
+
+    min_c, max_c = min(canchas), max(canchas)
+
+    def radio(c):
+        return 12 if max_c == min_c else 7 + (c - min_c) / (max_c - min_c) * 16
+
+    mx, my = sx(med_precio), sy(med_ocup)
+    svg = (
+        f'<rect x="{mx:.1f}" y="{PY0}" width="{PX1-mx:.1f}" height="{my-PY0:.1f}" fill="var(--good-wash)"/>'
+        f'<rect x="{PX0}" y="{PY0}" width="{mx-PX0:.1f}" height="{my-PY0:.1f}" fill="var(--series-1-wash)"/>'
+        f'<rect x="{PX0}" y="{my:.1f}" width="{mx-PX0:.1f}" height="{PY1-my:.1f}" fill="var(--warn-wash)"/>'
+        f'<rect x="{mx:.1f}" y="{my:.1f}" width="{PX1-mx:.1f}" height="{PY1-my:.1f}" fill="var(--crit-wash)"/>'
+        f'<text x="{mx+8:.1f}" y="{PY0+16}" class="quad-label good">LÍDERES</text>'
+        f'<text x="{PX0+8}" y="{PY0+16}" class="quad-label blue">RETADORES</text>'
+        f'<text x="{PX0+8}" y="{PY1-8}" class="quad-label warn">EN DIFICULTAD</text>'
+        f'<text x="{mx+8:.1f}" y="{PY1-8}" class="quad-label crit">SOBREPRECIO</text>'
+        f'<line x1="{PX0}" y1="{PY1}" x2="{PX1}" y2="{PY1}" stroke="var(--baseline)"/>'
+        f'<line x1="{PX0}" y1="{PY0}" x2="{PX0}" y2="{PY1}" stroke="var(--baseline)"/>'
+    )
+    for yv in (0, 20, 40, 60, 80, 100):
+        yy = sy(yv)
+        svg += (
+            f'<line x1="{PX0}" y1="{yy:.1f}" x2="{PX1}" y2="{yy:.1f}" stroke="var(--gridline)"/>'
+            f'<text x="{PX0-8}" y="{yy+4:.1f}" text-anchor="end" class="axis-lbl">{yv}%</text>'
+        )
+    x_step = round((x_max - x_min) / 5 / 10) * 10 or 10
+    xv = -(-int(x_min) // x_step) * x_step
+    while xv <= x_max:
+        svg += f'<text x="{sx(xv):.1f}" y="{PY1+18}" text-anchor="middle" class="axis-lbl">{simbolo}{xv:.0f}</text>'
+        xv += x_step
+
+    for c in filtrados:
+        y = sy(c["ocupacion_pct"])
+        es_reves = c.get(highlight_key)
+        col = RED if es_reves else "var(--gridline-strong)"
+        x1, x2 = sx(c["precio_min"]), sx(c["precio_max"])
+        svg += f'<line x1="{x1:.1f}" y1="{y:.1f}" x2="{x2:.1f}" y2="{y:.1f}" stroke="{col}" stroke-width="4" stroke-linecap="round" opacity="0.55"/>'
+
+    labels = []
+    for c in filtrados:
+        x, y, r = sx(c["_precio_prom"]), sy(c["ocupacion_pct"]), radio(c["canchas"] or 1)
+        es_reves = c.get(highlight_key)
+        fill = RED if es_reves else TEAL
+        titulo = f'{c["nombre"]}: {simbolo}{c["_precio_prom"]:.0f}/hr, {c["ocupacion_pct"]}%, {c["canchas"]} canchas'
+        svg += (
+            f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{r:.1f}" fill="{fill}" '
+            f'fill-opacity="{0.95 if es_reves else 0.8}" stroke="var(--surface-1)" stroke-width="1.5">'
+            f'<title>{titulo}</title></circle>'
+        )
+        labels.append((x, y - r - 6, c["nombre"], es_reves))
+    for x, y, nombre, es_reves in labels:
+        svg += f'<text x="{x:.1f}" y="{y:.1f}" text-anchor="middle" class="pt-label{" focus" if es_reves else ""}">{nombre}</text>'
+
+    return f'<svg viewBox="0 0 {w} {h}">{svg}</svg>'
+
+
+NOMBRE_REVES = "Revés Padel Chapultepec"
+
+
+def _svg_tendencia_semanal(tendencia, simbolo, w=700, h=340):
+    """Tendencia de ingreso semanal apilada (todos los competidores),
+    con columnas invisibles para hover — resalta la banda bajo el cursor
+    y muestra un tooltip, igual que la tendencia del dashboard principal."""
+    semanas = tendencia["semanas"]
+    series_raw = tendencia["series_mxn"]
+
+    series_items = [(nombre, [v or 0 for v in vals]) for nombre, vals in series_raw.items() if any(vals)]
+    totales = {nombre: sum(vals) for nombre, vals in series_items}
+    series_items.sort(key=lambda kv: totales[kv[0]], reverse=True)
+
+    n = len(semanas)
+    PX0, PX1, PY0, PY1 = 55, w - 60, 20, h - 30
+
+    def sx(i):
+        return PX0 + i / (n - 1) * (PX1 - PX0)
+
+    matriz = [[vals[i] for _, vals in series_items] for i in range(n)]
+    y_max = max(sum(fila) for fila in matriz) * 1.08
+
+    def sy(v):
+        return PY1 - v / y_max * (PY1 - PY0)
+
+    colores = []
+    color_iter = 0
+    for nombre, _ in series_items:
+        if nombre == NOMBRE_REVES:
+            colores.append(RED)
+        else:
+            hue = (40 + color_iter * 137.508) % 360
+            colores.append(f"hsl({hue:.0f}, 62%, 45%)")
+            color_iter += 1
+
+    svg = f'<line x1="{PX0}" y1="{PY1}" x2="{PX1}" y2="{PY1}" stroke="var(--baseline)"/>'
+    for g in range(5):
+        gy = PY1 - (g / 4) * (PY1 - PY0)
+        gv = (g / 4) * y_max
+        svg += (
+            f'<line x1="{PX0}" y1="{gy:.1f}" x2="{PX1}" y2="{gy:.1f}" stroke="var(--gridline)"/>'
+            f'<text x="{PX0-8}" y="{gy+4:.1f}" text-anchor="end" class="axis-lbl">{_fmt_eje(gv, simbolo)}</text>'
+        )
+    step = max(1, n // 8)
+    for i in range(0, n, step):
+        svg += f'<text x="{sx(i):.1f}" y="{PY1+16}" text-anchor="middle" class="axis-lbl">{_dia_corto(semanas[i])}</text>'
+
+    acumulados = [[None] * len(series_items) for _ in range(n)]
+    cum_prev = [0.0] * n
+    for s_idx, (nombre, _vals) in enumerate(series_items):
+        cum_next = [cum_prev[i] + matriz[i][s_idx] for i in range(n)]
+        top_pts = " ".join(f"{sx(i):.1f},{sy(cum_next[i]):.1f}" for i in range(n))
+        bottom_pts = " ".join(f"{sx(i):.1f},{sy(cum_prev[i]):.1f}" for i in range(n - 1, -1, -1))
+        is_sel = nombre == NOMBRE_REVES
+        svg += (
+            f'<polygon id="banda-{s_idx}" points="{top_pts} {bottom_pts}" fill="{colores[s_idx]}" '
+            f'fill-opacity="0.85" stroke="{"var(--text-primary)" if is_sel else "var(--surface-1)"}" '
+            f'stroke-width="{2 if is_sel else 1}"/>'
+        )
+        for i in range(n):
+            acumulados[i][s_idx] = [cum_prev[i], cum_next[i]]
+        cum_prev = cum_next
+
+    ultima = n - 1
+    for s_idx, (nombre, _vals) in enumerate(series_items):
+        ini, fin = acumulados[ultima][s_idx]
+        if fin - ini <= 0:
+            continue
+        y_mid = sy((ini + fin) / 2)
+        is_sel = nombre == NOMBRE_REVES
+        fill_attr = "" if is_sel else f' fill="{colores[s_idx]}"'
+        svg += (
+            f'<text x="{PX1+8}" y="{y_mid+3:.1f}" class="end-lbl{" focus" if is_sel else ""}"{fill_attr}>'
+            f'{_fmt_eje(matriz[ultima][s_idx], simbolo)}</text>'
+        )
+
+    for i in range(n):
+        x_mid = sx(i)
+        x_ini = PX0 if i == 0 else (sx(i - 1) + x_mid) / 2
+        x_fin = PX1 if i == n - 1 else (x_mid + sx(i + 1)) / 2
+        svg += f'<rect class="hover-col" x="{x_ini:.1f}" y="{PY0}" width="{x_fin-x_ini:.1f}" height="{PY1-PY0}" data-semana="{i}"/>'
+
+    svg_html = f'<svg id="svgTendenciaCM" viewBox="0 0 {w} {h}">{svg}</svg>'
+    legend_html = "".join(
+        f'<div class="item{" focus" if nombre == NOMBRE_REVES else ""}">'
+        f'<span class="dot" style="background:{colores[i]}"></span>{nombre}</div>'
+        for i, (nombre, _) in enumerate(series_items)
+    )
+    js_data = {
+        "semanas": semanas,
+        "nombres": [nombre for nombre, _ in series_items],
+        "colores": colores,
+        "matriz": matriz,
+        "acumulados": acumulados,
+        "yMax": y_max, "PX0": PX0, "PX1": PX1, "PY0": PY0, "PY1": PY1,
+        "simbolo": simbolo,
+    }
+    return svg_html, legend_html, js_data
+
+
 def generar_html_courtmetrics():
     with open(os.path.join(HERE, "courtmetrics_reves.json"), encoding="utf-8") as f:
         data = json.load(f)
@@ -268,18 +483,6 @@ def generar_html_courtmetrics():
         unidad=simbolo
     )
 
-    # ---- Anticipación de reserva ----
-    ant = sorted(data["anticipacion_reserva"], key=lambda r: -r["dias_antes"])
-    svg_anticipacion = _svg_barras(
-        [f'{r["dias_antes"]}d' if r["dias_antes"] else "hoy" for r in ant],
-        [round(r["ocupacion_normalizada"] * 100) for r in ant], unidad="%"
-    )
-
-    # ---- Clima ----
-    clima = data["clima"]
-    svg_temp = _svg_linea_doble(clima["fechas"], clima["temp_max_c"], clima["temp_min_c"], unidad="°")
-    svg_precip = _svg_barras([_dia_corto(f) for f in clima["fechas"][::3]], clima["precipitacion_mm"][::3], unidad="mm")
-
     # ---- Competencia ----
     comp = data["competencia"]
     tabla_filas = "".join(
@@ -299,8 +502,11 @@ def generar_html_courtmetrics():
     svg_rank_ingreso = _svg_ranking(comp, "ingreso_mxn", fmt_moneda_fn)
     svg_rank_ingreso_cancha = _svg_ranking(comp, "ingreso_cancha_mxn", fmt_moneda_fn)
     svg_rank_ocupacion = _svg_ranking(comp, "ocupacion_pct", lambda v: f"{v}%")
-    svg_rank_precio_max = _svg_ranking(comp, "precio_max", lambda v: f"{simbolo}{v:.0f}")
+    svg_rango_precio = _svg_rango_precio(comp, simbolo)
     svg_rank_rating = _svg_ranking(comp, "rating_google", lambda v: f"{v} ★")
+    svg_cuadrante = _svg_cuadrante(comp, data["cuadrante_exacto"], simbolo)
+    svg_tendencia, legend_tendencia, js_tendencia = _svg_tendencia_semanal(data["tendencia_semanal"], simbolo)
+    js_tendencia_json = json.dumps(js_tendencia, ensure_ascii=False).replace("</", "<\\/")
 
     return f"""<!doctype html>
 <html lang="es">
@@ -313,9 +519,9 @@ def generar_html_courtmetrics():
 :root {{
   --navy: #1E2D4A; --teal: #1A8A8A; --teal-light: #22a8a8; --sand: #E8E6E1;
   --surface-1: #ffffff; --page:#F5F3EE; --text-primary:#2D2D2D; --text-secondary:#5c5954;
-  --text-muted:#7a7670; --border: #d4d0c8; --gridline:#e5e2da;
-  --heading-ink: var(--navy);
-  --warn-wash:#FEF3E2; --warn-ink:#D4820A;
+  --text-muted:#7a7670; --border: #d4d0c8; --gridline:#e5e2da; --gridline-strong:#d4d0c8; --baseline:#c7c3b8;
+  --heading-ink: var(--navy); --blue-ink:#1E2D4A;
+  --warn-wash:#FEF3E2; --warn-ink:#D4820A; --good-wash:#e3f2ea; --crit-wash:#fbe1de;
   --good-ink:#1A7A4A; --crit-ink:#C0392B; --series-1-wash:#EAF5F5;
 }}
 @media (prefers-color-scheme: dark) {{
@@ -323,7 +529,8 @@ def generar_html_courtmetrics():
     --navy:#141f36; --teal:#22a8a8; --teal-light:#3cc4c4; --sand:#2a2a26;
     --surface-1:#182238; --page:#0c1220; --text-primary:#f2f1ec; --text-secondary:#b8b5ac;
     --text-muted:#8b887f; --border: #2a3550; --heading-ink: var(--text-primary); --gridline:#26314a;
-    --warn-wash:#2c2415; --warn-ink:#e0a53f;
+    --gridline-strong:#33405c; --baseline:#3a4560; --blue-ink:#8fa3d6;
+    --warn-wash:#2c2415; --warn-ink:#e0a53f; --good-wash:#12271d; --crit-wash:#301c1a;
     --good-ink:#3fc37e; --crit-ink:#e2685c; --series-1-wash:#152738;
   }}
 }}
@@ -369,6 +576,24 @@ svg {{ width: 100%; height: auto; overflow: visible; }}
 .axis-lbl {{ font-size: 9.5px; fill: var(--text-muted); }}
 .bar-lbl {{ font-size: 11px; fill: var(--text-secondary); }}
 .bar-val {{ font-size: 10.5px; fill: var(--text-muted); font-variant-numeric: tabular-nums; }}
+.quad-label {{ font-size: 10px; font-weight: 700; letter-spacing: 0.03em; }}
+.quad-label.good {{ fill: var(--good-ink); }} .quad-label.blue {{ fill: var(--blue-ink); }}
+.quad-label.warn {{ fill: var(--warn-ink); }} .quad-label.crit {{ fill: var(--crit-ink); }}
+.pt-label {{ font-size: 9px; fill: var(--text-secondary); }}
+.pt-label.focus {{ fill: {RED}; font-weight: 700; font-size: 10px; }}
+circle {{ cursor: default; }}
+.end-lbl {{ font-size: 9.5px; font-weight: 600; font-variant-numeric: tabular-nums; }}
+.end-lbl.focus {{ fill: {RED}; font-weight: 700; }}
+.hover-col {{ fill: transparent; }}
+.chart-tooltip {{
+  position: fixed; display: none; pointer-events: none; z-index: 100;
+  background: var(--surface-1); border: 1px solid var(--border); border-radius: 8px;
+  padding: 7px 10px; font-size: 12px; box-shadow: 0 6px 18px rgba(0,0,0,0.18);
+  max-width: 220px;
+}}
+.chart-tooltip .tt-club {{ font-weight: 700; margin-bottom: 2px; display:flex; align-items:center; gap:6px; }}
+.chart-tooltip .tt-dot {{ width: 9px; height: 9px; border-radius: 2px; flex-shrink:0; }}
+.chart-tooltip .tt-val {{ font-variant-numeric: tabular-nums; color: var(--text-secondary); }}
 .legend {{ display:flex; flex-wrap:wrap; gap: 10px 16px; margin-top: 10px; font-size: 11px; color: var(--text-secondary); }}
 .legend .item {{ display:flex; align-items:center; gap:6px; }}
 .legend .dot {{ width:9px; height:9px; border-radius:2px; flex-shrink:0; }}
@@ -387,16 +612,11 @@ td {{ padding: 7px 8px; border-bottom: 1px solid var(--gridline); }}
     <div class="hdr-text">
       <p class="eyebrow">Vaxta Edge · Inteligencia de Pádel</p>
       <h1>Inteligencia de mercado — {club['nombre']}</h1>
+      <p>Periodo: {data['periodo_actual']} vs. {data['periodo_anterior']}</p>
     </div>
   </div>
 </div>
 <div class="wrap">
-  <div class="aviso">
-    <strong>Captura manual, no en vivo.</strong> Estos datos vienen de una fuente externa de inteligencia
-    de mercado, leídos a mano el {data['capturado_el']} — no se actualizan solos. Periodo:
-    {data['periodo_actual']} vs. {data['periodo_anterior']} (ventana de {data['ventana_dias']} días, moneda {moneda}).
-  </div>
-
   <div class="card">
     <h2>{club['nombre']}</h2>
     <p class="sub">{club['canchas']} canchas techadas · {club['direccion']}</p>
@@ -435,22 +655,16 @@ td {{ padding: 7px 8px; border-bottom: 1px solid var(--gridline); }}
   </div>
 
   <div class="card">
-    <h2>Anticipación de reserva</h2>
-    <p class="sub">Ocupación normalizada según cuántos días antes se reservó (100% = nivel del día mismo)</p>
-    {svg_anticipacion}
+    <h2>Ocupación vs. precio — cuadrante competitivo</h2>
+    <p class="sub">Tamaño de burbuja = canchas · línea = rango de precio (mín–máx) · Revés Padel Chapultepec en rojo · pasa el cursor sobre cada punto para ver el detalle</p>
+    {svg_cuadrante}
   </div>
 
-  <div class="grid2">
-    <div class="card">
-      <h2>Temperatura diaria</h2>
-      <p class="sub">Línea sólida = máxima · línea punteada = mínima (°C)</p>
-      {svg_temp}
-    </div>
-    <div class="card">
-      <h2>Precipitación (cada 3 días)</h2>
-      <p class="sub">Milímetros de lluvia</p>
-      {svg_precip}
-    </div>
+  <div class="card">
+    <h2>Tendencia de ingreso semanal</h2>
+    <p class="sub">Todos los competidores, apilados · pasa el cursor sobre la gráfica para ver el detalle por semana</p>
+    {svg_tendencia}
+    <div class="legend">{legend_tendencia}</div>
   </div>
 
   <div class="card">
@@ -477,13 +691,64 @@ td {{ padding: 7px 8px; border-bottom: 1px solid var(--gridline); }}
     {svg_rank_ocupacion}
   </div>
   <div class="card">
-    <h2>Ranking — Precio máximo por hora</h2>
-    {svg_rank_precio_max}
+    <h2>Rango de precio por hora</h2>
+    <p class="sub">Precio mínimo–máximo observado, ordenado de mayor a menor</p>
+    {svg_rango_precio}
   </div>
   <div class="card">
     <h2>Ranking — Rating de Google</h2>
     {svg_rank_rating}
   </div>
 </div>
+
+<div class="chart-tooltip" id="ctTendencia"></div>
+<script>
+(function() {{
+  const D = {js_tendencia_json};
+  const svgEl = document.getElementById('svgTendenciaCM');
+  const tooltip = document.getElementById('ctTendencia');
+  if (!svgEl) return;
+  function svgCoords(evt) {{
+    const pt = svgEl.createSVGPoint();
+    pt.x = evt.clientX; pt.y = evt.clientY;
+    return pt.matrixTransform(svgEl.getScreenCTM().inverse());
+  }}
+  function resaltar(sIdxResaltado) {{
+    D.nombres.forEach((_, i) => {{
+      const el = document.getElementById('banda-' + i);
+      if (!el) return;
+      if (sIdxResaltado === null) {{
+        el.setAttribute('fill', D.colores[i]);
+        el.setAttribute('fill-opacity', '0.85');
+      }} else if (i === sIdxResaltado) {{
+        el.setAttribute('fill', D.colores[i]);
+        el.setAttribute('fill-opacity', '1');
+      }} else {{
+        el.setAttribute('fill', 'var(--gridline-strong)');
+        el.setAttribute('fill-opacity', '0.5');
+      }}
+    }});
+  }}
+  svgEl.querySelectorAll('.hover-col').forEach(rect => {{
+    rect.addEventListener('mousemove', (evt) => {{
+      const wi = parseInt(rect.dataset.semana);
+      const {{ y }} = svgCoords(evt);
+      const valorY = (D.PY1 - y) / (D.PY1 - D.PY0) * D.yMax;
+      const sIdx = D.acumulados[wi].findIndex(([ini, fin]) => valorY >= ini && valorY <= fin);
+      if (sIdx === -1) {{ resaltar(null); tooltip.style.display = 'none'; return; }}
+      resaltar(sIdx);
+      const val = D.matriz[wi][sIdx];
+      const f = new Date(D.semanas[wi] + 'T00:00:00');
+      const fechaTxt = f.toLocaleDateString('es-MX', {{ day: 'numeric', month: 'short', year: 'numeric' }});
+      tooltip.innerHTML = `<div class="tt-club"><span class="tt-dot" style="background:${{D.colores[sIdx]}}"></span>${{D.nombres[sIdx]}}</div>` +
+        `<div class="tt-val">Semana del ${{fechaTxt}}: ${{D.simbolo}}${{Math.round(val).toLocaleString('es-MX')}}</div>`;
+      tooltip.style.display = 'block';
+      tooltip.style.left = (evt.clientX + 14) + 'px';
+      tooltip.style.top = (evt.clientY + 14) + 'px';
+    }});
+  }});
+  svgEl.addEventListener('mouseleave', () => {{ resaltar(null); tooltip.style.display = 'none'; }});
+}})();
+</script>
 </body>
 </html>"""
